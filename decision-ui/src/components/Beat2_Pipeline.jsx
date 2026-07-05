@@ -133,9 +133,13 @@ const BenchmarkRow = ({ data, index }) => {
 
 const BenchmarkRowMemo = memo(BenchmarkRow);
 
+const stages = Array.isArray(pipelineStages) ? pipelineStages : [];
+const hasLogs = stageLogs && typeof stageLogs === "object";
+const benchData = Array.isArray(benchmarkData) ? benchmarkData : [];
+
 export default function Beat2_Pipeline({ onComplete }) {
   const { activePersona } = usePersona();
-  const [stageStatuses, setStageStatuses] = useState(pipelineStages.map(() => "pending"));
+  const [stageStatuses, setStageStatuses] = useState(stages.map(() => "pending"));
   const [currentStage, setCurrentStage] = useState(-1);
   const [started, setStarted] = useState(false);
   const [showBenchmarks, setShowBenchmarks] = useState(false);
@@ -143,14 +147,15 @@ export default function Beat2_Pipeline({ onComplete }) {
   const terminalRef = useRef(null);
 
   useEffect(() => {
-    if (currentStage < 0 || currentStage >= pipelineStages.length) return;
-    const stage = pipelineStages[currentStage];
-    const logs = stageLogs[stage.id] || [];
-    if (!logs.length) return;
+    if (currentStage < 0 || currentStage >= stages.length || !hasLogs) return;
+    const stage = stages[currentStage];
+    if (!stage?.id) return;
+    const logs = stageLogs[stage.id];
+    if (!logs?.length) return;
     let idx = 0;
     const timer = setInterval(() => {
-      if (idx < logs.length) {
-        setTerminalLines((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${logs[idx].msg}`]);
+      if (idx < logs.length && logs[idx]) {
+        setTerminalLines((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${logs[idx]?.msg ?? ""}`]);
         idx++;
       } else {
         clearInterval(timer);
@@ -166,7 +171,7 @@ export default function Beat2_Pipeline({ onComplete }) {
   }, [terminalLines]);
 
   useEffect(() => {
-    if (!started || currentStage >= pipelineStages.length) return;
+    if (!started || currentStage >= stages.length) return;
     const idx = currentStage + 1;
     const timer = setTimeout(() => {
       setCurrentStage(idx);
@@ -176,7 +181,7 @@ export default function Beat2_Pipeline({ onComplete }) {
         if (idx > 0) next[idx - 1] = "done";
         return next;
       });
-      if (idx === pipelineStages.length - 1) {
+      if (idx === stages.length - 1) {
         setTimeout(() => {
           setStageStatuses((prev) => { const n = [...prev]; n[n.length - 1] = "done"; return n; });
           setShowBenchmarks(true);
@@ -191,7 +196,7 @@ export default function Beat2_Pipeline({ onComplete }) {
     if (started) return;
     setStarted(true);
     setCurrentStage(-1);
-    setStageStatuses(pipelineStages.map(() => "pending"));
+    setStageStatuses(stages.map(() => "pending"));
   };
 
   return (
@@ -225,7 +230,7 @@ export default function Beat2_Pipeline({ onComplete }) {
 
       <div className="bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between gap-2">
-          {pipelineStages.map((stage, i) => (
+          {stages.map((stage, i) => (
             <div key={stage.id} className="flex-1 flex flex-col items-center gap-2">
               <motion.div
                 animate={{
@@ -308,7 +313,7 @@ export default function Beat2_Pipeline({ onComplete }) {
             </div>
 
             <div className="space-y-5">
-              {benchmarkData.map((b, i) => (
+              {benchData.map((b, i) => (
                 <BenchmarkRowMemo key={b.operation} data={b} index={i} />
               ))}
             </div>
