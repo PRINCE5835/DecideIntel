@@ -26,7 +26,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
   const notifRef = useRef(null);
   const personaAlerts = useMemo(() => dataForPersona(activePersona).alerts || [], [activePersona]);
   const profileCtx = useProfile();
-  const { profile, updateField, verifyEmail, sendOtp, verifyOtp, profileComplete } = profileCtx;
+  const { profile, updateField, sendEmailOtp, sendMobileOtp, verifyEmailOtp, verifyMobileOtp, profileComplete, toast, dismissToast, countryCode } = profileCtx;
   const inputRef = useRef(null);
   const blurTimerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -365,10 +365,14 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
             <AccountSettings
               profile={profile}
               updateField={updateField}
-              verifyEmail={verifyEmail}
-              sendOtp={sendOtp}
-              verifyOtp={verifyOtp}
+              sendEmailOtp={sendEmailOtp}
+              sendMobileOtp={sendMobileOtp}
+              verifyEmailOtp={verifyEmailOtp}
+              verifyMobileOtp={verifyMobileOtp}
               onClose={() => setShowAccountSettings(false)}
+              toast={toast}
+              dismissToast={dismissToast}
+              countryCode={countryCode}
             />
           )}
         </AnimatePresence>
