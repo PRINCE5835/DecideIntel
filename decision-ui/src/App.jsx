@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
 import { DarkModeProvider } from "./data/DarkModeContext";
 import { PersonaProvider } from "./data/PersonaContext";
@@ -31,6 +31,14 @@ function BeatFallback() {
 function AuthenticatedApp({ onLogout }) {
   const [activeBeat, setActiveBeat] = useState("persona");
   const [pipelineDone, setPipelineDone] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.detail?.beat) setActiveBeat(e.detail.beat);
+    };
+    window.addEventListener("opencode:resetBeat", handler);
+    return () => window.removeEventListener("opencode:resetBeat", handler);
+  }, []);
 
   const handlePersonaSelect = () => {
     setActiveBeat("pipeline");

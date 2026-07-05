@@ -135,8 +135,6 @@ const BenchmarkRowMemo = memo(BenchmarkRow);
 
 export default function Beat2_Pipeline({ onComplete }) {
   const { activePersona } = usePersona();
-  const { profile, profileComplete } = useProfile();
-  const [showSecurityAlert, setShowSecurityAlert] = useState(false);
   const [stageStatuses, setStageStatuses] = useState(pipelineStages.map(() => "pending"));
   const [currentStage, setCurrentStage] = useState(-1);
   const [started, setStarted] = useState(false);
