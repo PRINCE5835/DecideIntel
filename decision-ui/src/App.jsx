@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
+import { DarkModeProvider } from "./data/DarkModeContext";
 import { PersonaProvider } from "./data/PersonaContext";
 import Header from "./components/Header";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -37,7 +38,8 @@ function AuthenticatedApp({ onLogout }) {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#F8FAFC] font-['Inter']">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-dark-bg font-['Inter'] transition-colors duration-200">
+        <DarkModeProvider>
         <PersonaProvider>
           <Header
             activeBeat={activeBeat}
@@ -69,6 +71,7 @@ function AuthenticatedApp({ onLogout }) {
             </AnimatePresence>
           </main>
         </PersonaProvider>
+        </DarkModeProvider>
       </div>
     </ErrorBoundary>
   );

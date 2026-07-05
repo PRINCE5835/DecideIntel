@@ -106,7 +106,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#F9F9F9] flex items-center justify-center p-4 overflow-hidden">
+    <div className="relative min-h-screen bg-[#F9F9F9] dark:bg-dark-bg flex items-center justify-center p-4 overflow-hidden transition-colors duration-200">
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#0066FF]/4 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-[#34D399]/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -116,7 +116,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="w-full max-w-md"
       >
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl border border-slate-100/60 shadow-[0_8px_40px_rgba(0,0,0,0.06)] p-10">
+        <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-3xl border border-slate-100/60 dark:border-dark-border/60 shadow-[0_8px_40px_rgba(0,0,0,0.06)] p-10">
           <div className="text-center mb-9">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -126,8 +126,8 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
             >
               <LogoD />
             </motion.div>
-            <h1 className="text-xl font-semibold text-slate-800 tracking-tight">Decision Intelligence Hub</h1>
-            <p className="text-sm text-slate-400 mt-1.5 font-normal">Sign in to your account</p>
+            <h1 className="text-xl font-semibold text-slate-800 dark:text-dark-text tracking-tight">Decision Intelligence Hub</h1>
+            <p className="text-sm text-slate-400 dark:text-dark-muted mt-1.5 font-normal">Sign in to your account</p>
             <div className="mt-4 flex flex-col items-center gap-1">
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${backendStatus.status === "online" ? "bg-green-500" : backendStatus.status === "checking" ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
@@ -148,23 +148,23 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)]"
+                className="w-full h-11 px-4 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm text-slate-800 dark:text-dark-text placeholder:text-slate-400 dark:placeholder:text-dark-muted outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)]"
                 placeholder="Enter your username"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)] pr-11"
+                  className="w-full h-11 px-4 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm text-slate-800 dark:text-dark-text placeholder:text-slate-400 dark:placeholder:text-dark-muted outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)] pr-11"
                   placeholder="Enter your password"
                 />
                 <button

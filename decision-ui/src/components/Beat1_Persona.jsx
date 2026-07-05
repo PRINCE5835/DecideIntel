@@ -116,8 +116,8 @@ export default function Beat1_Persona({ onSelect }) {
             onClick={() => { selectPersona(p.id); onSelect?.(p); }}
             className={`relative text-left p-6 rounded-2xl border-2 transition-all ${
               activePersona.id === p.id
-                ? "border-[#0066FF] bg-white shadow-xl shadow-[#0066FF]/5"
-                : "border-slate-100 bg-white hover:border-slate-200 shadow-sm hover:shadow-md"
+                ? "border-[#0066FF] bg-white dark:bg-dark-card shadow-xl shadow-[#0066FF]/5"
+                : "border-slate-100 dark:border-dark-border bg-white dark:bg-dark-card hover:border-slate-200 dark:hover:border-dark-border shadow-sm hover:shadow-md"
             }`}
           >
             {activePersona.id === p.id && (

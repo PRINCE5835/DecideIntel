@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Loader2, Sparkles, LogOut, Settings, User, ChevronDown, Shield, CheckCircle2 } from "lucide-react";
-import { usePersona } from "../data/PersonaContext";
+import { Search, Bell, Loader2, Sparkles, LogOut, Settings, User, ChevronDown, Shield, CheckCircle2, Moon, Sun } from "lucide-react";
+import { useDarkMode } from "../data/DarkModeContext";
+import { usePersona, dataForPersona } from "../data/PersonaContext";
 import { fetchWithRetry } from "../utils/retry";
 import useProfile from "../data/useProfile";
 import AccountSettings from "./AccountSettings";
@@ -14,12 +15,16 @@ function sanitise(input) {
 
 export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
   const { personas, activePersona, selectPersona } = usePersona();
+  const { dark, toggle: toggleDark } = useDarkMode();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
+  const personaAlerts = useMemo(() => dataForPersona(activePersona).alerts || [], [activePersona]);
   const profileCtx = useProfile();
   const { profile, updateField, verifyEmail, sendOtp, verifyOtp, profileComplete } = profileCtx;
   const inputRef = useRef(null);
@@ -98,13 +103,14 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-dark-card/90 backdrop-blur-xl border-b border-slate-200 dark:border-dark-border">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-6">
         <div className="flex items-center gap-2 mr-4 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0066FF] to-[#4F8CFF] flex items-center justify-center text-white text-sm font-bold">
@@ -211,7 +217,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeBeat === beat.id
                   ? "bg-[#0066FF] text-white shadow-lg shadow-[#0066FF]/20"
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  : "text-slate-500 dark:text-dark-muted hover:text-slate-700 dark:hover:text-dark-text hover:bg-slate-100 dark:hover:bg-dark-border"
               }`}
             >
               <span className="mr-1.5">{beat.icon}</span>
@@ -220,14 +226,49 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3 relative" ref={dropdownRef}>
-          <button className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors">
-            <Bell className="w-5 h-5 text-slate-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+        <div className="flex items-center gap-2" ref={dropdownRef}>
+          <button onClick={toggleDark} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-border transition-colors">
+            {dark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
           </button>
+          <div className="relative" ref={notifRef}>
+            <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-border transition-colors">
+              <Bell className="w-5 h-5 text-slate-500" />
+              {personaAlerts.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+              )}
+            </button>
+            <AnimatePresence>
+              {showNotifications && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="absolute top-full -left-16 mt-2 w-80 bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-xl shadow-slate-200/50 p-3"
+                >
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Active Alerts</p>
+                  {personaAlerts.length === 0 ? (
+                    <p className="text-sm text-slate-400 py-3 text-center">No alerts</p>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {personaAlerts.map((a) => (
+                        <div key={a.id} className="flex items-start gap-2 p-2 rounded-xl bg-slate-50 dark:bg-dark-border/50">
+                          <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${a.severity === "CRITICAL" ? "bg-red-500" : a.severity === "WARNING" ? "bg-amber-500" : "bg-blue-500"}`} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-700 dark:text-dark-text">{a.message}</p>
+                            <p className="text-xs text-slate-400">{a.action} · {a.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 pl-3 border-l border-slate-200 hover:bg-slate-50 rounded-xl py-1.5 pr-2 transition-colors group"
+            className="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-dark-border hover:bg-slate-50 dark:hover:bg-dark-border rounded-xl py-1.5 pr-2 transition-colors group"
           >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
@@ -236,10 +277,10 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
               {activePersona?.initials || "U"}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-slate-700 leading-tight group-hover:text-[#0066FF] transition-colors">{profile.name}</p>
-              <p className="text-xs text-slate-400 leading-tight">Platform Admin</p>
+              <p className="text-sm font-medium text-slate-700 dark:text-dark-text leading-tight group-hover:text-[#0066FF] transition-colors">{profile.name}</p>
+              <p className="text-xs text-slate-400 dark:text-dark-muted leading-tight">Platform Admin</p>
             </div>
-            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 dark:text-dark-muted transition-transform ${showDropdown ? "rotate-180" : ""}`} />
           </button>
 
           <AnimatePresence>
@@ -249,9 +290,9 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.97 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 p-3"
+                className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-xl shadow-slate-200/50 p-3"
               >
-                <div className="p-3 rounded-xl bg-gradient-to-br from-[#0066FF]/3 to-[#4F8CFF]/3 border border-[#0066FF]/8 mb-2">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#0066FF]/3 to-[#4F8CFF]/3 dark:from-[#0066FF]/10 dark:to-[#4F8CFF]/10 border border-[#0066FF]/8 mb-2">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0066FF] to-[#4F8CFF] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                       {profile.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
@@ -276,7 +317,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
                   </div>
                   <button
                     onClick={() => { setShowDropdown(false); setShowAccountSettings(true); }}
-                    className="w-full mt-2.5 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-600 hover:border-[#0066FF]/30 hover:text-[#0066FF] hover:shadow-sm transition-all"
+                    className="w-full mt-2.5 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm font-medium text-slate-600 dark:text-dark-muted hover:border-[#0066FF]/30 hover:text-[#0066FF] hover:shadow-sm transition-all"
                   >
                     <Settings className="w-3.5 h-3.5" />
                     Account Settings
@@ -291,7 +332,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
                     key={p.id}
                     onClick={() => { selectPersona(p.id); setShowDropdown(false); }}
                     className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${
-                      activePersona.id === p.id ? "bg-[#0066FF]/5 text-[#0066FF]" : "text-slate-600 hover:bg-slate-50"
+                      activePersona.id === p.id ? "bg-[#0066FF]/5 text-[#0066FF]" : "text-slate-600 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-border"
                     }`}
                   >
                     <div
@@ -306,10 +347,10 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
                     </div>
                   </button>
                 ))}
-                <div className="border-t border-slate-100 mt-2 pt-2">
+                <div className="border-t border-slate-100 dark:border-dark-border mt-2 pt-2">
                   <button
                     onClick={() => { setShowDropdown(false); onLogout?.(); }}
-                    className="w-full flex items-center gap-2 p-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-2 p-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign out

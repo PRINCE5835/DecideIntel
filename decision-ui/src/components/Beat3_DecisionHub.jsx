@@ -119,11 +119,11 @@ const ForecastList = ({ data }) => {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.35 + i * 0.07 }}
-          className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50"
-        >
-          <div>
-            <p className="text-sm font-medium text-slate-700">{f.product}</p>
-            <p className="text-xs text-slate-400">{f.region}</p>
+            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-dark-border/50"
+          >
+            <div>
+              <p className="text-sm font-medium text-slate-700 dark:text-dark-text">{f.product}</p>
+              <p className="text-xs text-slate-400 dark:text-dark-muted">{f.region}</p>
           </div>
           <div className="text-right">
             <p className="text-sm font-bold text-[#0066FF]">{f.forecast.toLocaleString()}</p>
@@ -201,12 +201,12 @@ export default function Beat3_DecisionHub() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+          className="lg:col-span-2 bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-slate-500" />
-              <h2 className="text-lg font-semibold text-slate-800">Anomaly Detection Trend</h2>
+              <TrendingUp className="w-5 h-5 text-slate-500 dark:text-dark-muted" />
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-dark-text">Anomaly Detection Trend</h2>
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
               {anomalyCount} anomalies detected
@@ -219,12 +219,12 @@ export default function Beat3_DecisionHub() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+          className="bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-slate-500" />
-              <h2 className="text-lg font-semibold text-slate-800">Active Alerts</h2>
+              <AlertTriangle className="w-5 h-5 text-slate-500 dark:text-dark-muted" />
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-dark-text">Active Alerts</h2>
             </div>
             <span className="text-xs text-slate-400">{personaData.alerts.length} new</span>
           </div>
@@ -237,11 +237,11 @@ export default function Beat3_DecisionHub() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.25 }}
-          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+          className="bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6"
         >
           <div className="flex items-center gap-2 mb-5">
-            <Sliders className="w-5 h-5 text-slate-500" />
-            <h2 className="text-lg font-semibold text-slate-800">Simulation Parameter Control</h2>
+            <Sliders className="w-5 h-5 text-slate-500 dark:text-dark-muted" />
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-dark-text">Simulation Parameter Control</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -251,7 +251,7 @@ export default function Beat3_DecisionHub() {
             ].map(({ key, label, min, max, desc }) => (
               <div key={key}>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-sm font-medium text-slate-700">{label}</label>
+                  <label className="text-sm font-medium text-slate-700 dark:text-dark-text">{label}</label>
                   <span className="text-xs font-semibold text-[#0066FF] bg-[#0066FF]/5 px-2 py-0.5 rounded-lg">{params[key]}</span>
                 </div>
                 <input
@@ -274,12 +274,12 @@ export default function Beat3_DecisionHub() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
-          className="lg:col-span-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+          className="lg:col-span-1 bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-slate-500" />
-              <h2 className="text-lg font-semibold text-slate-800">Demand Forecast</h2>
+              <TrendingUp className="w-5 h-5 text-slate-500 dark:text-dark-muted" />
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-dark-text">Demand Forecast</h2>
             </div>
           </div>
           <ForecastList data={personaData.forecastData} />
@@ -289,12 +289,12 @@ export default function Beat3_DecisionHub() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
-          className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+          className="lg:col-span-2 bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Lightbulb className="w-5 h-5 text-amber-500" />
-              <h2 className="text-lg font-semibold text-slate-800">LLM Recommendation</h2>
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-dark-text">LLM Recommendation</h2>
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium border border-purple-200">
               Gemini AI
@@ -334,8 +334,8 @@ export default function Beat3_DecisionHub() {
             </motion.div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-            <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-dark-border/50 border border-slate-100 dark:border-dark-border">
+            <p className="text-sm text-slate-700 dark:text-dark-text whitespace-pre-line leading-relaxed">
               {personaData.llmRecommendation}
             </p>
           </div>

@@ -212,9 +212,9 @@ export default function Beat2_Pipeline({ onComplete }) {
     >
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Pipeline Build</h1>
-          <p className="text-slate-500 mt-1">
-            Running as <span className="font-medium text-slate-700">{activePersona.name}</span> —{" "}
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-dark-text tracking-tight">Pipeline Build</h1>
+          <p className="text-slate-500 dark:text-dark-muted mt-1">
+            Running as <span className="font-medium text-slate-700 dark:text-dark-text">{activePersona.name}</span> —{" "}
             <span className="text-amber-600">{activePersona.bottleneck}</span>
           </p>
         </div>
@@ -247,7 +247,7 @@ export default function Beat2_Pipeline({ onComplete }) {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between gap-2">
           {pipelineStages.map((stage, i) => (
             <div key={stage.id} className="flex-1 flex flex-col items-center gap-2">
@@ -321,7 +321,7 @@ export default function Beat2_Pipeline({ onComplete }) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+            className="bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm p-6"
           >
             <div className="flex items-center gap-2 mb-6">
               <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />

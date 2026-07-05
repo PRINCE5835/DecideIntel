@@ -52,12 +52,12 @@ export default function AccountSettings({ profile, updateField, verifyEmail, sen
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-white rounded-2xl border border-slate-100 shadow-xl p-7 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-white dark:bg-dark-card rounded-2xl border border-slate-100 dark:border-dark-border shadow-xl p-7 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-slate-800">Profile & Security</h2>
-            <p className="text-sm text-slate-400 mt-0.5">Manage your account settings and verification</p>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-dark-text">Profile & Security</h2>
+            <p className="text-sm text-slate-400 dark:text-dark-muted mt-0.5">Manage your account settings and verification</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
             <X className="w-5 h-5 text-slate-400" />
@@ -69,12 +69,12 @@ export default function AccountSettings({ profile, updateField, verifyEmail, sen
             <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Profile Information</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Full Name</label>
                 <input
                   type="text"
                   value={profile.name}
                   onChange={(e) => updateField("name", e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-sm outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12"
+                  className="w-full h-11 px-4 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm dark:text-dark-text outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12"
                 />
               </div>
               <div>
@@ -112,13 +112,13 @@ export default function AccountSettings({ profile, updateField, verifyEmail, sen
           <div className="border-t border-slate-100 pt-6">
             <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Verification Checkpoints</h3>
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-dark-border/50 border border-slate-100 dark:border-dark-border">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-slate-400" />
+                    <Mail className="w-5 h-5 text-slate-400 dark:text-dark-muted" />
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Email Address</p>
-                      <p className="text-xs text-slate-400">{profile.email || "Not set"}</p>
+                      <p className="text-sm font-medium text-slate-700 dark:text-dark-text">Email Address</p>
+                      <p className="text-xs text-slate-400 dark:text-dark-muted">{profile.email || "Not set"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -146,13 +146,13 @@ export default function AccountSettings({ profile, updateField, verifyEmail, sen
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-dark-border/50 border border-slate-100 dark:border-dark-border">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-slate-400" />
+                    <Phone className="w-5 h-5 text-slate-400 dark:text-dark-muted" />
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Mobile Number</p>
-                      <p className="text-xs text-slate-400">{profile.mobile || "Not set"}</p>
+                      <p className="text-sm font-medium text-slate-700 dark:text-dark-text">Mobile Number</p>
+                      <p className="text-xs text-slate-400 dark:text-dark-muted">{profile.mobile || "Not set"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
