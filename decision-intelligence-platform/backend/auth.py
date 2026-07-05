@@ -150,16 +150,29 @@ def authenticate_user(credential: str, plain_password: str) -> tuple[bool, str]:
     """Check credentials against env admin and registered users.
     Returns (success, matched_username)."""
     credential_lower = credential.strip().lower()
-    if credential_lower == AUTH_USERNAME:
-        pw_hash = AUTH_PASSWORD_HASH
-        if not pw_hash:
-            plain = os.getenv("AUTH_PASSWORD", "")
-            if not plain:
-                return False, ""
-            pw_hash = hash_password(plain)
-        if verify_password(plain_password, pw_hash):
-            return True, AUTH_USERNAME
+
+    def _check_admin(c: str) -> tuple[bool, str]:
+        if c == AUTH_USERNAME:
+            pw_hash = AUTH_PASSWORD_HASH
+            if not pw_hash:
+                plain = os.getenv("AUTH_PASSWORD", "")
+                if not plain:
+                    return False, ""
+                pw_hash = hash_password(plain)
+            if verify_password(plain_password, pw_hash):
+                return True, AUTH_USERNAME
         return False, ""
+
+    ok, user = _check_admin(credential_lower)
+    if ok:
+        return True, user
+
+    username_part = credential_lower.split("@")[0]
+    if username_part != credential_lower:
+        ok, user = _check_admin(username_part)
+        if ok:
+            return True, user
+
     users = _load_users()
     found = _find_user(credential, users)
     if found:
