@@ -16,6 +16,9 @@ import os
 from pathlib import Path
 
 import bleach
+import signal
+import sys
+
 from flask import Flask, jsonify, request, g
 from flask_caching import Cache
 from flask_compress import Compress
@@ -45,9 +48,32 @@ from backend.config import (
 )
 from backend.pipeline import run_pipeline
 
+# ── Graceful shutdown ──────────────────────────────────────────
+
+
+def _handle_sigterm(signum, frame):
+    print("SIGTERM received — shutting down gracefully.")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, _handle_sigterm)
+
 # ── App bootstrap ──────────────────────────────────────────────
 
 app = Flask(__name__)
+
+
+# ── Security headers middleware ────────────────────────────────
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
 app.config.from_mapping(
     COMPRESS_ALGORITHM=["br", "gzip"],
     COMPRESS_MIMETYPES=["application/json", "text/html", "text/css", "text/javascript"],

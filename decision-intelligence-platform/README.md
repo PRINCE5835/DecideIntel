@@ -1,14 +1,14 @@
 # Decision Intelligence Platform
 
-AI-Powered Decision Intelligence Platform — Cloud-Native, GPU-Accelerated, Decision-First.
+AI-Powered Decision Intelligence Platform — Cloud-Native, GPU-Accelerated, Multi-Persona.
 
-## Real User
+## Personas
 
-**Alex Chen — Supply Chain Operations Manager**
-
-## Decision Bottleneck
-
-**Inventory replenishment decision latency > 4 hours** — resolved through automated pipeline acceleration and LLM-powered recommendations.
+| Persona | User | Domain | Metrics |
+|---------|------|--------|---------|
+| Supply Chain | Alex Chen — Operations Manager | Inventory & replenishment | `quantity`, `unit_price` |
+| Transportation | Maya Patel — Fleet Director | Route & transit logistics | `transit_minutes`, `distance_km` |
+| Health | James Okonkwo — Public Health Officer | Case response & facilities | `case_count`, `response_hours` |
 
 ## Architecture
 
@@ -17,7 +17,7 @@ AI-Powered Decision Intelligence Platform — Cloud-Native, GPU-Accelerated, Dec
 │                         APPLICATION LAYER                             │
 │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌───────────────────┐ │
 │  │ Identity  │→│ Pipeline  │→│ Accel     │→│ Decision Output    │ │
-│  │ & Data    │  │ Build     │  │ Metres    │  │ (Alerts/Forecasts)│ │
+│  │ & Data    │  │ Build     │  │ Metrics   │  │ (Alerts/Forecasts)│ │
 │  └───────────┘  └───────────┘  └───────────┘  └───────────────────┘ │
 │                                    ┌──────────────────────────────┐  │
 │                                    │  NLQ Query Bar (Gemini AI)   │  │
@@ -39,9 +39,9 @@ AI-Powered Decision Intelligence Platform — Cloud-Native, GPU-Accelerated, Dec
 ## Key Features
 
 ### Multi-Source Ingestion
-- **CSV Transactions** — structured supply-chain order data (5 files, 2000 rows each)
-- **JSON Logs** — semi-structured microservice event streams (3 files, 100 lines each)
-- **Text Reports** — unstructured incident reports for NLP analysis (3 files)
+- **CSV Transactions** — structured order data per persona
+- **JSON Logs** — semi-structured event streams
+- **Text Reports** — unstructured incident reports for NLP analysis
 
 ### Natural Language Query (NLQ) Bar
 Ask questions in plain English about your pipeline data:
@@ -49,7 +49,7 @@ Ask questions in plain English about your pipeline data:
 - *"Show me the demand forecast for Widget-A"*
 - *"What is the current decision bottleneck?"*
 
-Powered by **Gemini AI** with a rule-based fallback when no API key is configured.
+Powered by **Gemini AI** with rule-based fallback when no API key is configured.
 
 ### GPU Acceleration Proof
 Animated CPU vs GPU benchmark comparison bars demonstrate:
@@ -69,18 +69,20 @@ Animated CPU vs GPU benchmark comparison bars demonstrate:
 decision-intelligence-platform/
 ├── backend/
 │   ├── config.py                 # 12-factor env config
+│   ├── auth.py                   # JWT + bcrypt auth module
+│   ├── persona_config.py         # Per-persona schema & threshold config
 │   ├── pipeline.py               # End-to-end orchestrator
-│   ├── server.py                 # Flask API + NLQ /api/query endpoint
+│   ├── server.py                 # Flask API — secured, cached, rate-limited
 │   ├── cloud_io.py               # GCS + BigQuery I/O abstraction
 │   ├── ingest/
-│   │   ├── landing_zone.py       # CSV transaction landing zone
-│   │   ├── multi_source.py       # JSON logs + text reports landing zones
-│   │   ├── normalizer.py         # Schema normalisation
+│   │   ├── landing_zone.py       # CSV landing zone
+│   │   ├── multi_source.py       # JSON logs + text reports per persona
+│   │   ├── normalizer.py         # Schema-adaptive normalisation
 │   │   ├── deduplicator.py       # Exact + fuzzy dedup
 │   │   └── filter.py             # Bad-record filtering
 │   ├── analyze/
 │   │   ├── feature_agg.py        # Feature aggregation (cudf)
-│   │   ├── trend_join.py         # Real date-window trend features
+│   │   ├── trend_join.py         # Date-window trend features
 │   │   ├── anomaly_detection.py  # Z-score anomaly detection (cudf)
 │   │   └── benchmark.py          # CPU vs GPU benchmark harness
 │   └── decision/
@@ -88,38 +90,39 @@ decision-intelligence-platform/
 │       ├── forecast.py           # Exponential smoothing forecast
 │       └── llm_recommend.py      # Gemini API recommendation
 ├── decision-ui/                  # React + Vite + Framer Motion frontend
-│   ├── src/
-│   │   ├── App.jsx               # Beat navigation
-│   │   ├── components/
-│   │   │   ├── Header.jsx        # NLQ bar + nav
-│   │   │   ├── Beat1_Persona.jsx # Persona selection
-│   │   │   ├── Beat2_Pipeline.jsx# Pipeline + GPU/CPU benchmarks
-│   │   │   └── Beat3_DecisionHub.jsx # Alerts, forecasts, LLM
-│   │   └── data/mockData.js
-│   └── package.json
-├── data/                         # Data directories (local GCS mock)
+├── data/                         # Data directories (auto-generated)
 ├── tests/
 │   ├── test_ingest.py
 │   ├── test_analyze.py
 │   └── test_decision.py
-├── Dockerfile                    # Multi-stage Cloud Run build
+├── Dockerfile                    # CPU multi-stage build
 ├── Dockerfile.gpu                # GPU-accelerated variant (RAPIDS)
+├── Dockerfile.dev                # Dev hot-reload build
+├── docker-compose.yml            # Local dev orchestration
 ├── cloudbuild.yaml               # Cloud Build CI/CD config
+├── render.yaml                   # Render platform deploy config
 ├── .env.example
 ├── requirements.txt
-└── setup.py
+├── setup.py
+├── pyproject.toml                # Linter config
+├── .pre-commit-config.yaml
+├── .dockerignore
+└── .gitignore
 ```
 
 ## Quick Start
 
-### 1. Install Python Dependencies
+### Prerequisites
+- Python 3.11+
+- Node.js 20+
+- A `.env` file (copy `.env.example` → `.env` and fill in **all REQUIRED** keys)
 
+### 1. Install Python Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 2. Install Frontend Dependencies & Build
-
 ```bash
 cd decision-ui
 npm install
@@ -128,76 +131,83 @@ cd ..
 ```
 
 ### 3. Run Backend
-
 ```bash
 python -m backend.server
 ```
 
 ### 4. Run Frontend Dev Server
-
 ```bash
 cd decision-ui
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser.
+Open `http://localhost:5173` in your browser.
 
 ### 5. (Optional) Enable LLM & NLQ
-
-Copy `.env.example` → `.env` and add your Gemini API key:
-
+Add your Gemini API key to `.env`:
 ```
 GEMINI_API_KEY=your_key_here
 ```
-
 Get a key at https://aistudio.google.com/apikey
 
 ### 6. (Optional) Enable GPU Acceleration
-
 ```bash
 conda install -c rapidsai cudf
 ```
-
 Set `CUDF_ENABLED=1` in `.env`.
 
-## Deploy to Google Cloud Run
+## Deploy
 
+### Frontend → Vercel (free)
 ```bash
-# Build and deploy using Cloud Build
-gcloud builds submit --config cloudbuild.yaml \
-  --substitutions=_PROJECT_ID=your-project-id,_REGION=us-central1
+cd decision-ui
+vercel --prod
 ```
+No env vars needed — SPA uses same-origin proxy.
 
-Or build locally:
+### Backend → Render (free)
+1. Push repo to GitHub
+2. Create Render Web Service → select repo
+3. `render.yaml` auto-detected — set these env vars:
 
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `JWT_SECRET` | Yes | `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `CORS_ORIGINS` | Yes | Your Vercel URL |
+| `AUTH_PASSWORD` | Yes | Strong admin password |
+| `GEMINI_API_KEY` | No | For AI recommendations |
+
+### Google Cloud Run
 ```bash
-docker build -t decision-intel-platform .
-docker run -p 8080:8080 decision-intel-platform
+gcloud builds submit --config cloudbuild.yaml \
+  --substitutions=_PROJECT_ID=your-project-id,_REGION=us-central1,_JWT_SECRET=...,_CORS_ORIGINS=...,_AUTH_PASSWORD=...
 ```
 
 ## Testing
-
 ```bash
 pytest tests/ -v
 ```
 
 ## API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/query` | POST | Natural language question about pipeline data |
-| `/api/run-pipeline` | POST | Execute the full data pipeline |
-| `/api/results` | GET | Latest recommendation results |
-| `/api/benchmarks` | GET | CPU vs GPU benchmark data |
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/health` | GET | No | Health check |
+| `/api/auth/login` | POST | No | Login (returns JWT token) |
+| `/api/auth/logout` | POST | Yes | Revoke token |
+| `/api/run-pipeline` | POST | Yes | Execute pipeline for selected persona |
+| `/api/results` | GET | Yes | Latest recommendation results |
+| `/api/benchmarks` | GET | Yes | CPU vs GPU benchmark data |
+| `/api/query` | POST | Yes | Natural language question |
 
 ## Cloud-Native Principles
 
-- **12-factor config**: Environment-injected via `config.py`
+- **12-factor config**: Environment-injected via `config.py`; app crashes at startup if `JWT_SECRET`, `CORS_ORIGINS`, or `AUTH_PASSWORD` are missing
 - **Immutable data**: Each pipeline stage writes new files; never mutates input
-- **Stateless API**: Server has no in-memory state; data lives on disk/local GCS
+- **Stateless API**: Server has no in-memory state; data lives on disk
 - **Isolated components**: Each module has a single responsibility
 - **GPU graceful fallback**: Falls back to pandas if cudf unavailable
 - **LLM graceful fallback**: Falls back to rule-based responses if no API key
-- **Containerized**: Multi-stage Docker build for Cloud Run deployment
-- **CI/CD ready**: `cloudbuild.yaml` for automated GCP builds
+- **Containerized**: Multi-stage Docker build; `docker-compose.yml` for local dev
+- **CI/CD ready**: `cloudbuild.yaml` + GitHub Actions (`.github/workflows/ci.yml`)
+- **Secure by default**: JWT auth + rate limiting + XSS sanitisation + security headers + graceful shutdown

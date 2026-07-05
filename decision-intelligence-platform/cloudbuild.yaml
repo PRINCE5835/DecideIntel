@@ -21,7 +21,7 @@ steps:
       - "--no-allow-unauthenticated"
       - "--memory=2Gi"
       - "--cpu=2"
-      - "--set-env-vars=GEMINI_API_KEY=${_GEMINI_API_KEY},CUDF_ENABLED=0,JWT_SECRET=${_JWT_SECRET},CORS_ORIGINS=${_CORS_ORIGINS}"
+      - "--set-env-vars=GEMINI_API_KEY=${_GEMINI_API_KEY},CUDF_ENABLED=0,JWT_SECRET=${_JWT_SECRET},CORS_ORIGINS=${_CORS_ORIGINS},AUTH_PASSWORD=${_AUTH_PASSWORD}"
 
 substitutions:
   _PROJECT_ID: your-gcp-project-id
@@ -30,3 +30,4 @@ substitutions:
   _GEMINI_API_KEY: ""
   _JWT_SECRET: ""
   _CORS_ORIGINS: "https://your-frontend.vercel.app"
+  _AUTH_PASSWORD: ""
