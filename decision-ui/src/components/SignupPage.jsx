@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { UserPlus, Loader2, LogIn } from "lucide-react";
 import { fetchWithRetry } from "../utils/retry";
@@ -11,6 +11,14 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState("checking");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/auth/health`, { signal: AbortSignal.timeout(5000) })
+      .then((r) => r.json())
+      .then((d) => setBackendStatus(d.status === "ok" ? "online" : "error"))
+      .catch(() => setBackendStatus("offline"));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +44,13 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
       localStorage.setItem("username", data.username);
       onLogin(data.token);
     } catch (err) {
-      setError(err.message);
+      if (err.name === "TypeError" && err.message === "Failed to fetch") {
+        setError("Cannot reach the server. Make sure the backend is running.");
+      } else if (err.message?.includes("timed out") || err.name === "AbortError") {
+        setError("Request timed out. Backend may be starting up — try again.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +70,12 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
             </div>
             <h1 className="text-2xl font-bold text-slate-800">DecideIntel</h1>
             <p className="text-sm text-slate-500 mt-1">Create your account</p>
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${backendStatus === "online" ? "bg-green-500" : backendStatus === "checking" ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
+              <span className="text-xs text-slate-400">
+                {backendStatus === "online" ? "Server connected" : backendStatus === "checking" ? "Checking server..." : "Server unreachable"}
+              </span>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
