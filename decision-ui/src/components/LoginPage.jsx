@@ -10,7 +10,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [backendStatus, setBackendStatus] = useState("checking");
+  const [backendStatus, setBackendStatus] = useState({ status: "checking", msg: "", detail: "" });
 
   useEffect(() => {
     let cancelled = false;
@@ -18,10 +18,19 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
     const check = () => {
       if (cancelled || retries >= 6) return;
       retries++;
+      setBackendStatus({ status: "checking", msg: `Trying... (attempt ${retries}/6)`, detail: "" });
       fetch(`${API_BASE}/auth/health`, { signal: AbortSignal.timeout(30000) })
         .then((r) => r.json())
-        .then((d) => { if (!cancelled) setBackendStatus(d.status === "ok" ? "online" : "error"); })
-        .catch(() => { if (!cancelled) { setBackendStatus("offline"); setTimeout(check, 8000); } });
+        .then((d) => { if (!cancelled) setBackendStatus({ status: d.status === "ok" ? "online" : "error", msg: d.status === "ok" ? "Server connected" : "Backend error", detail: JSON.stringify(d) }); })
+        .catch((err) => {
+          if (!cancelled) {
+            const msg = err.message || "Unknown error";
+            const detail = `URL: ${API_BASE}/auth/health`;
+            setBackendStatus({ status: "offline", msg: `Cannot reach the server`, detail: `${msg} — ${detail}` });
+            console.error("Health check failed:", msg, detail);
+            setTimeout(check, 8000);
+          }
+        });
     };
     check();
     return () => { cancelled = true; };
@@ -73,11 +82,22 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
             </div>
             <h1 className="text-2xl font-bold text-slate-800">DecideIntel</h1>
             <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
-            <div className="mt-3 flex items-center justify-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${backendStatus === "online" ? "bg-green-500" : backendStatus === "checking" ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
-              <span className="text-xs text-slate-400">
-                {backendStatus === "online" ? "Server connected" : backendStatus === "checking" ? "Checking server..." : "Server unreachable"}
-              </span>
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${backendStatus.status === "online" ? "bg-green-500" : backendStatus.status === "checking" ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
+                <span className="text-xs text-slate-400">{backendStatus.msg}</span>
+              </div>
+              {backendStatus.status === "offline" && (
+                <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 text-left w-full">
+                  <p className="font-medium mb-1">Diagnostics:</p>
+                  <p className="break-all">{backendStatus.detail}</p>
+                  <p className="mt-2">
+                    Open{" "}
+                    <a href={`${API_BASE}/auth/health`} target="_blank" rel="noopener noreferrer"
+                       className="text-red-600 underline">backend health check</a> in a new tab
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -104,7 +124,15 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
             </div>
 
             {error && (
-              <p className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</p>
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl">
+                <p>{error}</p>
+                {error === "Cannot reach the server. Make sure the backend is running." && (
+                  <a href={`${API_BASE}/auth/health`} target="_blank" rel="noopener noreferrer"
+                     className="block mt-1.5 text-red-500 underline text-xs">
+                    Open API health check directly &rarr;
+                  </a>
+                )}
+              </div>
             )}
 
             <button
