@@ -196,6 +196,8 @@ export default function Beat2_Pipeline({ onComplete }) {
     if (started) return;
     setStarted(true);
     setCurrentStage(-1);
+    setTerminalLines([]);
+    setShowBenchmarks(false);
     setStageStatuses(stages.map(() => "pending"));
   };
 
