@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import Header from "./components/Header";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./components/LoginPage";
+import SignupPage from "./components/SignupPage";
 import { personas } from "./data/mockData";
 
 const Beat1_Persona = lazy(() => import("./components/Beat1_Persona"));
@@ -28,12 +29,16 @@ function BeatFallback() {
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [showSignup, setShowSignup] = useState(false);
   const [activeBeat, setActiveBeat] = useState("persona");
   const [selectedPersona, setSelectedPersona] = useState(personas[0]);
   const [pipelineDone, setPipelineDone] = useState(false);
 
   if (!token) {
-    return <LoginPage onLogin={setToken} />;
+    if (showSignup) {
+      return <SignupPage onLogin={setToken} onSwitchToLogin={() => setShowSignup(false)} />;
+    }
+    return <LoginPage onLogin={setToken} onSwitchToSignup={() => setShowSignup(true)} />;
   }
 
   const handlePersonaSelect = (p) => {

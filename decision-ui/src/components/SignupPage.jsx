@@ -1,30 +1,35 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LogIn, Loader2, UserPlus } from "lucide-react";
+import { UserPlus, Loader2, LogIn } from "lucide-react";
 import { fetchWithRetry } from "../utils/retry";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
-export default function LoginPage({ onLogin, onSwitchToSignup }) {
+export default function SignupPage({ onLogin, onSwitchToLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username || !password) return;
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const resp = await fetchWithRetry(`${API_BASE}/auth/login`, {
+      const resp = await fetchWithRetry(`${API_BASE}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
       if (!resp.ok) {
         const data = await resp.json();
-        throw new Error(data.message || "Login failed");
+        throw new Error(data.message || "Signup failed");
       }
       const data = await resp.json();
       localStorage.setItem("token", data.token);
@@ -50,7 +55,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
               D
             </div>
             <h1 className="text-2xl font-bold text-slate-800">DecideIntel</h1>
-            <p className="text-sm text-slate-500 mt-1">Sign in to continue</p>
+            <p className="text-sm text-slate-500 mt-1">Create your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -61,7 +66,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/10"
-                placeholder="admin"
+                placeholder="Choose a username"
               />
             </div>
             <div>
@@ -71,7 +76,17 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/10"
-                placeholder="••••••••"
+                placeholder="At least 4 characters"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/10"
+                placeholder="Re-enter password"
               />
             </div>
 
@@ -87,19 +102,19 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <LogIn className="w-4 h-4" />
+                <UserPlus className="w-4 h-4" />
               )}
-              Sign In
+              Sign Up
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
-              onClick={onSwitchToSignup}
+              onClick={onSwitchToLogin}
               className="inline-flex items-center gap-1.5 text-sm text-[#0066FF] hover:text-[#0052CC] font-medium transition-colors"
             >
-              <UserPlus className="w-3.5 h-3.5" />
-              Don't have an account? Sign up
+              <LogIn className="w-3.5 h-3.5" />
+              Already have an account? Sign in
             </button>
           </div>
         </div>

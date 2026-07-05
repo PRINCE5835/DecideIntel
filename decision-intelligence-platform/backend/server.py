@@ -33,6 +33,8 @@ from backend.auth import (
     verify_password,
     sanitise_text,
     default_user,
+    authenticate_user,
+    register_user,
 )
 from backend.config import (
     DECISIONS_DIR,
@@ -138,11 +140,28 @@ def login():
     if not username or not password:
         return error_response(400, "Bad Request", "Username and password are required.")
 
-    if username != _USER["username"] or not verify_password(password, _USER["password_hash"]):
+    if not authenticate_user(username, password):
         return error_response(401, "Unauthorized", "Invalid credentials.")
 
     token = issue_token(username)
     return jsonify({"token": token, "token_type": "Bearer", "username": username})
+
+
+@app.route("/api/auth/signup", methods=["POST"])
+def signup():
+    data = request.get_json(silent=True) or {}
+    username = sanitise_text(data.get("username", ""), 100)
+    password = data.get("password", "")
+
+    if not username or not password:
+        return error_response(400, "Bad Request", "Username and password are required.")
+
+    err = register_user(username, password)
+    if err:
+        return error_response(409, "Conflict", err)
+
+    token = issue_token(username)
+    return jsonify({"token": token, "token_type": "Bearer", "username": username}), 201
 
 
 @app.route("/api/auth/logout", methods=["POST"])
