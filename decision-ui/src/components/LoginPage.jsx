@@ -43,7 +43,7 @@ function LogoD() {
 }
 
 export default function LoginPage({ onLogin, onSwitchToSignup }) {
-  const [username, setUsername] = useState("");
+  const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -75,7 +75,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const val = username.trim();
+    const val = emailOrUsername.trim();
     const pass = password.trim();
     if (!val || !pass) {
       setError("Email or Username and password are required.");
@@ -89,24 +89,23 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        skipAuthRedirect: true,
       });
       if (!resp.ok) {
         const data = await resp.json().catch(() => null);
-        throw new Error(data?.message || "Login failed");
+        throw new Error(data?.message || "Wrong username/email or password.");
       }
       const data = await resp.json().catch(() => null);
       if (!data?.token) throw new Error("Invalid server response — no token received");
       localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data?.username || username);
+      localStorage.setItem("username", data?.username || emailOrUsername);
       onLogin(data.token);
     } catch (err) {
-      if (err.name === "TypeError" && err.message === "Failed to fetch") {
-        setError("Cannot reach the server. Make sure the backend is running.");
-      } else if (err?.message?.includes("timed out") || err?.name === "AbortError") {
-        setError("Request timed out. Backend may be starting up — try again.");
-      } else {
-        setError(err.message);
-      }
+      const msg =
+        err?.message === "Failed to fetch"
+          ? "Cannot reach the server. Make sure the backend is running."
+          : err?.message || "Wrong username/email or password.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -158,8 +157,8 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
                 <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Email or Username</label>
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={emailOrUsername}
+                  onChange={(e) => setEmailOrUsername(e.target.value)}
                   className="w-full h-11 px-4 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm text-slate-800 dark:text-dark-text placeholder:text-slate-400 dark:placeholder:text-dark-muted outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)]"
                   placeholder="Enter your email or username"
                 />

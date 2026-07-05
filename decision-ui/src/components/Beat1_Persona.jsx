@@ -115,12 +115,12 @@ export default function Beat1_Persona({ onSelect }) {
             whileTap={{ scale: 0.98 }}
             onClick={() => { selectPersona(p.id); onSelect?.(p); }}
             className={`relative text-left p-6 rounded-2xl border-2 transition-all ${
-              activePersona.id === p.id
+              activePersona?.id === p.id
                 ? "border-[#0066FF] bg-white dark:bg-dark-card shadow-xl shadow-[#0066FF]/5"
                 : "border-slate-100 dark:border-dark-border bg-white dark:bg-dark-card hover:border-slate-200 dark:hover:border-dark-border shadow-sm hover:shadow-md"
             }`}
           >
-            {activePersona.id === p.id && (
+            {activePersona?.id === p.id && (
               <motion.div
                 layoutId="activeBorder"
                 className="absolute inset-0 rounded-2xl ring-2 ring-[#0066FF]/20"

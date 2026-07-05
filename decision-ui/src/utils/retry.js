@@ -10,7 +10,7 @@ export async function fetchWithRetry(url, options = {}, retries = 3, timeoutMs =
     try {
       const resp = await fetch(url, { ...options, signal: controller.signal });
       clearTimeout(timer);
-      if (resp.status === 401) {
+      if (resp.status === 401 && !options?.skipAuthRedirect) {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
         window.location.reload();

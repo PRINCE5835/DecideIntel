@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { AlertTriangle, TrendingUp, Lightbulb, Zap, CheckCircle2, Sliders } from "lucide-react";
@@ -229,10 +229,10 @@ export default function Beat3_DecisionHub() {
     setTimeout(() => setShowToast(null), 2500);
   }, []);
 
-  useState(() => {
+  useEffect(() => {
     const t = setTimeout(() => setLoading(false), 400);
     return () => clearTimeout(t);
-  });
+  }, []);
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { personas as defaultPersonas, alerts as defaultAlerts, forecastData as defaultForecast, anomalyTimeline as defaultTimeline, llmRecommendation as defaultLLM } from "./mockData";
 
 const PersonaContext = createContext(null);
@@ -65,6 +65,15 @@ export function PersonaProvider({ children }) {
 
   const activePersona = useMemo(() => personas.find((p) => p.id === activePersonaId) || personas[0] || null, [personas, activePersonaId]);
 
+  useEffect(() => {
+    const exists = personas.some((p) => p.id === activePersonaId);
+    if (!exists && personas.length > 0) {
+      setActivePersonaId(personas[0].id);
+    } else if (!exists) {
+      setActivePersonaId(null);
+    }
+  }, [personas, activePersonaId]);
+
   const selectPersona = useCallback((id) => {
     setActivePersonaId(id);
   }, []);
@@ -89,10 +98,7 @@ export function PersonaProvider({ children }) {
 
   const removePersona = useCallback((id) => {
     setPersonas((prev) => prev.filter((p) => p.id !== id));
-    if (activePersonaId === id) {
-      setActivePersonaId(personas[0]?.id || null);
-    }
-  }, [activePersonaId, personas]);
+  }, []);
 
   const value = useMemo(() => ({
     personas,
