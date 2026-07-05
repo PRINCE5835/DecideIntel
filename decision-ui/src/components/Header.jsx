@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Loader2, Sparkles, LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { Search, Bell, Loader2, Sparkles, LogOut, Settings, User, ChevronDown, Shield, CheckCircle2 } from "lucide-react";
 import { usePersona } from "../data/PersonaContext";
 import { fetchWithRetry } from "../utils/retry";
+import useProfile from "../data/useProfile";
+import AccountSettings from "./AccountSettings";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
@@ -17,6 +19,9 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showAccountSettings, setShowAccountSettings] = useState(false);
+  const profileCtx = useProfile();
+  const { profile, updateField, verifyEmail, sendOtp, verifyOtp, profileComplete } = profileCtx;
   const inputRef = useRef(null);
   const blurTimerRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -222,7 +227,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
           </button>
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 pl-3 border-l border-slate-200 hover:bg-slate-50 rounded-xl py-1.5 pr-2 transition-colors"
+            className="flex items-center gap-2 pl-3 border-l border-slate-200 hover:bg-slate-50 rounded-xl py-1.5 pr-2 transition-colors group"
           >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
@@ -231,8 +236,8 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
               {activePersona?.initials || "U"}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-slate-700 leading-tight">{activePersona?.name}</p>
-              <p className="text-xs text-slate-400 leading-tight">{activePersona?.role}</p>
+              <p className="text-sm font-medium text-slate-700 leading-tight group-hover:text-[#0066FF] transition-colors">{profile.name}</p>
+              <p className="text-xs text-slate-400 leading-tight">Platform Admin</p>
             </div>
             <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
           </button>
@@ -244,10 +249,42 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.97 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 p-2"
+                className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 p-3"
               >
-                <div className="px-3 py-2 mb-1">
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Switch Persona</p>
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#0066FF]/3 to-[#4F8CFF]/3 border border-[#0066FF]/8 mb-2">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0066FF] to-[#4F8CFF] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                      {profile.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{profile.name}</p>
+                      <p className="text-xs text-slate-400">{profile.email || "No email set"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {profileComplete ? (
+                      <span className="flex items-center gap-1 text-xs text-green-600">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Profile verified
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs text-amber-600">
+                        <Shield className="w-3 h-3" />
+                        Verification pending
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => { setShowDropdown(false); setShowAccountSettings(true); }}
+                    className="w-full mt-2.5 h-9 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-slate-200 text-sm font-medium text-slate-600 hover:border-[#0066FF]/30 hover:text-[#0066FF] hover:shadow-sm transition-all"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Account Settings
+                  </button>
+                </div>
+
+                <div className="px-3 py-1.5">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Switch Target Persona</p>
                 </div>
                 {personas.map((p) => (
                   <button
@@ -282,6 +319,18 @@ export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
             )}
           </AnimatePresence>
         </div>
+        <AnimatePresence>
+          {showAccountSettings && (
+            <AccountSettings
+              profile={profile}
+              updateField={updateField}
+              verifyEmail={verifyEmail}
+              sendOtp={sendOtp}
+              verifyOtp={verifyOtp}
+              onClose={() => setShowAccountSettings(false)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );
