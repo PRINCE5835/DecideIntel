@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Eye, EyeOff, ArrowLeft, Mail, User, Lock, Shield, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Eye, EyeOff, ArrowLeft, Mail, User, Lock, Shield, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+
+const TAKEN_USERNAMES = new Set(["admin", "user1", "maya", "root", "test", "demo", "system", "superuser", "null", "undefined", "api", "support"]);
 
 function LogoD() {
   return (
@@ -101,6 +103,8 @@ function rng() {
 
 export default function SignupPage({ onLogin, onSwitchToLogin }) {
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState(null); // null | "checking" | "available" | "taken"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -110,15 +114,46 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [toast, setToast] = useState(null);
+  const usernameTimer = useRef(null);
 
   const showToast = (msg) => {
     setToast({ message: msg });
     setTimeout(() => setToast(null), 6000);
   };
 
+  const checkUsername = useCallback((val) => {
+    const v = val.trim().toLowerCase();
+    if (!v) { setUsernameStatus(null); return; }
+    setUsernameStatus("checking");
+    clearTimeout(usernameTimer.current);
+    usernameTimer.current = setTimeout(() => {
+      const taken = TAKEN_USERNAMES.has(v);
+      setUsernameStatus(taken ? "taken" : "available");
+    }, 400);
+  }, []);
+
+  const handleUsernameChange = (e) => {
+    const v = e.target.value.replace(/\s/g, "");
+    setUsername(v);
+    checkUsername(v);
+  };
+
+  const suggestUsername = () => {
+    if (!name.trim()) return;
+    const base = name.trim().toLowerCase().replace(/\s+/g, "");
+    const suffix = String(Math.floor(100 + Math.random() * 900));
+    const suggestion = base + suffix;
+    setUsername(suggestion);
+    checkUsername(suggestion);
+  };
+
   const handleGenerateToken = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
+    if (!name.trim() || !username.trim() || !email.trim() || !password.trim()) {
       setError("All fields are required.");
+      return;
+    }
+    if (usernameStatus === "taken") {
+      setError("Please choose a different username.");
       return;
     }
     if (password.length < 4) {
@@ -141,7 +176,7 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
       setOtpVerified(true);
       const mockToken = "mock-token-" + Date.now();
       localStorage.setItem("token", mockToken);
-      localStorage.setItem("username", name);
+      localStorage.setItem("username", username);
       localStorage.setItem(
         "decideintel_profile",
         JSON.stringify({
@@ -233,6 +268,44 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
                       </div>
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Username</label>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={handleUsernameChange}
+                          disabled={otpSent}
+                          className="w-full h-11 pl-10 pr-20 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm dark:text-dark-text placeholder:text-slate-400 outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)] disabled:opacity-50"
+                          placeholder="Choose a username"
+                        />
+                        <button
+                          type="button"
+                          onClick={suggestUsername}
+                          disabled={otpSent}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium text-[#0066FF] bg-[#0066FF]/8 hover:bg-[#0066FF]/14 transition-colors disabled:opacity-40"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          Suggest
+                        </button>
+                      </div>
+                      {usernameStatus === "checking" && (
+                        <p className="text-xs text-amber-500 mt-1.5 flex items-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Checking availability...
+                        </p>
+                      )}
+                      {usernameStatus === "taken" && (
+                        <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
+                          <XCircle className="w-3 h-3" /> Username already exists.
+                        </p>
+                      )}
+                      {usernameStatus === "available" && (
+                        <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Username available
+                        </p>
+                      )}
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Professional Email</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -281,7 +354,7 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
                     {!otpSent ? (
                       <button
                         onClick={handleGenerateToken}
-                        disabled={loading}
+                        disabled={loading || usernameStatus === "taken" || !username.trim()}
                         className="relative w-full h-11 flex items-center justify-center gap-2 bg-gradient-to-r from-[#0066FF] to-[#4F8CFF] text-white text-sm font-semibold rounded-xl shadow-[0_4px_14px_rgba(0,102,255,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,102,255,0.3)] active:translate-y-0 disabled:opacity-60 disabled:hover:translate-y-0"
                       >
                         {loading ? (

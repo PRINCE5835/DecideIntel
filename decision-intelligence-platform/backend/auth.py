@@ -113,10 +113,11 @@ def _save_users(users: dict) -> None:
         json.dump(users, f, indent=2)
 
 
-def register_user(username: str, plain_password: str) -> str | None:
+def register_user(username: str, plain_password: str, email: str = "") -> str | None:
     """Register a new user. Returns error message or None on success."""
     users = _load_users()
     username = username.strip().lower()
+    email = email.strip().lower()
     if not username or not plain_password:
         return "Username and password are required."
     if len(username) < 3:
@@ -125,29 +126,47 @@ def register_user(username: str, plain_password: str) -> str | None:
         return "Password must be at least 4 characters."
     if username in users:
         return "Username already exists."
+    if email and any(u.get("email") == email for u in users.values()):
+        return "Email already registered."
     if username == AUTH_USERNAME:
         return "That username is reserved."
-    users[username] = {"password_hash": hash_password(plain_password)}
+    users[username] = {"password_hash": hash_password(plain_password), "email": email}
     _save_users(users)
     return None
 
 
-def authenticate_user(username: str, plain_password: str) -> bool:
-    """Check credentials against both env admin and registered users."""
-    username_lower = username.strip().lower()
-    if username_lower == AUTH_USERNAME:
+def _find_user(credential: str, users: dict) -> tuple[str, dict] | None:
+    """Find a user by username or email. Returns (key, user_dict) or None."""
+    credential_lower = credential.strip().lower()
+    if credential_lower in users:
+        return credential_lower, users[credential_lower]
+    for key, val in users.items():
+        if val.get("email", "").strip().lower() == credential_lower:
+            return key, val
+    return None
+
+
+def authenticate_user(credential: str, plain_password: str) -> tuple[bool, str]:
+    """Check credentials against env admin and registered users.
+    Returns (success, matched_username)."""
+    credential_lower = credential.strip().lower()
+    if credential_lower == AUTH_USERNAME:
         pw_hash = AUTH_PASSWORD_HASH
         if not pw_hash:
             plain = os.getenv("AUTH_PASSWORD", "")
             if not plain:
-                return False
+                return False, ""
             pw_hash = hash_password(plain)
-        return verify_password(plain_password, pw_hash)
+        if verify_password(plain_password, pw_hash):
+            return True, AUTH_USERNAME
+        return False, ""
     users = _load_users()
-    user = users.get(username_lower)
-    if user:
-        return verify_password(plain_password, user["password_hash"])
-    return False
+    found = _find_user(credential, users)
+    if found:
+        key, user = found
+        if verify_password(plain_password, user["password_hash"]):
+            return True, key
+    return False, ""
 
 
 # ── Default credentials check — requires explicit config ────────────

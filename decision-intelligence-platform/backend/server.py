@@ -134,29 +134,33 @@ def internal_error(_e):
 @app.route("/api/auth/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
-    username = sanitise_text(data.get("username", ""), 100)
+    credential = sanitise_text(
+        data.get("emailOrUsername") or data.get("username") or data.get("email", ""), 100
+    )
     password = data.get("password", "")
 
-    if not username or not password:
-        return error_response(400, "Bad Request", "Username and password are required.")
+    if not credential or not password:
+        return error_response(400, "Bad Request", "Email or Username and password are required.")
 
-    if not authenticate_user(username, password):
+    ok, matched_user = authenticate_user(credential, password)
+    if not ok:
         return error_response(401, "Unauthorized", "Invalid credentials.")
 
-    token = issue_token(username)
-    return jsonify({"token": token, "token_type": "Bearer", "username": username})
+    token = issue_token(matched_user)
+    return jsonify({"token": token, "token_type": "Bearer", "username": matched_user})
 
 
 @app.route("/api/auth/signup", methods=["POST"])
 def signup():
     data = request.get_json(silent=True) or {}
     username = sanitise_text(data.get("username", ""), 100)
+    email = sanitise_text(data.get("email", ""), 200)
     password = data.get("password", "")
 
     if not username or not password:
         return error_response(400, "Bad Request", "Username and password are required.")
 
-    err = register_user(username, password)
+    err = register_user(username, password, email)
     if err:
         return error_response(409, "Conflict", err)
 

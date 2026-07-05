@@ -75,14 +75,20 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username || !password) return;
+    const val = username.trim();
+    const pass = password.trim();
+    if (!val || !pass) {
+      setError("Email or Username and password are required.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
+      const payload = { emailOrUsername: val, password };
       const resp = await fetchWithRetry(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(payload),
       });
       if (!resp.ok) {
         const data = await resp.json().catch(() => null);
@@ -91,7 +97,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
       const data = await resp.json().catch(() => null);
       if (!data?.token) throw new Error("Invalid server response — no token received");
       localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data?.username || "");
+      localStorage.setItem("username", data?.username || username);
       onLogin(data.token);
     } catch (err) {
       if (err.name === "TypeError" && err.message === "Failed to fetch") {
@@ -148,16 +154,16 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full h-11 px-4 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm text-slate-800 dark:text-dark-text placeholder:text-slate-400 dark:placeholder:text-dark-muted outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)]"
-                placeholder="Enter your username"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Email or Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full h-11 px-4 rounded-xl bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border text-sm text-slate-800 dark:text-dark-text placeholder:text-slate-400 dark:placeholder:text-dark-muted outline-none transition-all duration-200 focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 focus:shadow-[0_0_0_4px_rgba(0,102,255,0.06)]"
+                  placeholder="Enter your email or username"
+                />
+              </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-dark-text mb-1.5">Password</label>
               <div className="relative">
