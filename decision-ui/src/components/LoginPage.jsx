@@ -59,10 +59,10 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
       setBackendStatus({ status: "checking", msg: `Trying... (attempt ${retries}/6)`, detail: "" });
       fetch(`${API_BASE}/auth/health`, { signal: AbortSignal.timeout(30000) })
         .then((r) => r.json())
-        .then((d) => { if (!cancelled) setBackendStatus({ status: d.status === "ok" ? "online" : "error", msg: d.status === "ok" ? "Server connected" : "Backend error", detail: JSON.stringify(d) }); })
+        .then((d) => { if (!cancelled) setBackendStatus({ status: d?.status === "ok" ? "online" : "error", msg: d?.status === "ok" ? "Server connected" : "Backend error", detail: JSON.stringify(d ?? {}) }); })
         .catch((err) => {
           if (!cancelled) {
-            const msg = err.message || "Unknown error";
+            const msg = err?.message || "Unknown error";
             const detail = `URL: ${API_BASE}/auth/health`;
             setBackendStatus({ status: "offline", msg: "Cannot reach the server", detail: `${msg} — ${detail}` });
             setTimeout(check, 8000);
@@ -85,17 +85,18 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
         body: JSON.stringify({ username, password }),
       });
       if (!resp.ok) {
-        const data = await resp.json();
-        throw new Error(data.message || "Login failed");
+        const data = await resp.json().catch(() => null);
+        throw new Error(data?.message || "Login failed");
       }
-      const data = await resp.json();
+      const data = await resp.json().catch(() => null);
+      if (!data?.token) throw new Error("Invalid server response — no token received");
       localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data.username);
+      localStorage.setItem("username", data?.username || "");
       onLogin(data.token);
     } catch (err) {
       if (err.name === "TypeError" && err.message === "Failed to fetch") {
         setError("Cannot reach the server. Make sure the backend is running.");
-      } else if (err.message?.includes("timed out") || err.name === "AbortError") {
+      } else if (err?.message?.includes("timed out") || err?.name === "AbortError") {
         setError("Request timed out. Backend may be starting up — try again.");
       } else {
         setError(err.message);
@@ -131,7 +132,7 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
             <div className="mt-4 flex flex-col items-center gap-1">
               <div className="flex items-center gap-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${backendStatus.status === "online" ? "bg-green-500" : backendStatus.status === "checking" ? "bg-amber-400 animate-pulse" : "bg-red-400"}`} />
-                <span className="text-xs text-slate-400">{backendStatus.msg}</span>
+                <span className="text-xs text-slate-400">{backendStatus?.msg ?? ""}</span>
               </div>
               {backendStatus.status === "offline" && (
                 <div className="mt-2 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700 text-left w-full">

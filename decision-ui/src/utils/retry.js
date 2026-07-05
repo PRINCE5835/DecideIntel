@@ -25,7 +25,7 @@ export async function fetchWithRetry(url, options = {}, retries = 3, timeoutMs =
       await sleep(baseDelay + jitter);
     } catch (err) {
       clearTimeout(timer);
-      if (err.name === "AbortError") {
+      if (err?.name === "AbortError") {
         throw new Error("Request timed out after " + (timeoutMs / 1000) + "s");
       }
       if (attempt === retries) throw err;
