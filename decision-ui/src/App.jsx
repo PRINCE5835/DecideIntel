@@ -89,9 +89,26 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [showSignup, setShowSignup] = useState(false);
 
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem("isAuthenticated", "true");
+      const raw = localStorage.getItem("currentUser");
+      let user = raw ? JSON.parse(raw) : {};
+      if (!user.username) {
+        user.username = localStorage.getItem("username") || "User";
+        localStorage.setItem("currentUser", JSON.stringify(user));
+      }
+    } else {
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("currentUser");
+    }
+  }, [token]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("currentUser");
     setToken(null);
   };
 

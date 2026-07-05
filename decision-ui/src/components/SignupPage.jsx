@@ -175,8 +175,11 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
     if (entered === otpCode) {
       setOtpVerified(true);
       const mockToken = "mock-token-" + Date.now();
+      const userData = { username, name, email, token: mockToken };
       localStorage.setItem("token", mockToken);
       localStorage.setItem("username", username);
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("currentUser", JSON.stringify(userData));
       localStorage.setItem(
         "decideintel_profile",
         JSON.stringify({

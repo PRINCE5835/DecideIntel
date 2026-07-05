@@ -97,8 +97,11 @@ export default function LoginPage({ onLogin, onSwitchToSignup }) {
       }
       const data = await resp.json().catch(() => null);
       if (!data?.token) throw new Error("Invalid server response — no token received");
+      const userData = { username: data?.username || emailOrUsername, token: data.token };
       localStorage.setItem("token", data.token);
-      localStorage.setItem("username", data?.username || emailOrUsername);
+      localStorage.setItem("username", userData.username);
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("currentUser", JSON.stringify(userData));
       onLogin(data.token);
     } catch (err) {
       const msg =
