@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo, memo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, ArrowRight, Shield, Terminal } from "lucide-react";
+import { CheckCircle2, Circle, ArrowRight, Terminal } from "lucide-react";
 import { pipelineStages, benchmarkData } from "../data/mockData";
 import { usePersona } from "../data/PersonaContext";
-import useProfile from "../data/useProfile";
 
 const stageDuration = 400;
 
@@ -192,10 +191,6 @@ export default function Beat2_Pipeline({ onComplete }) {
 
   const handleRun = () => {
     if (started) return;
-    if (!profileComplete) {
-      setShowSecurityAlert(true);
-      return;
-    }
     setStarted(true);
     setCurrentStage(-1);
     setStageStatuses(pipelineStages.map(() => "pending"));
@@ -219,31 +214,14 @@ export default function Beat2_Pipeline({ onComplete }) {
           </p>
         </div>
         {!started && (
-          <div className="flex flex-col items-end gap-2">
-            {showSecurityAlert && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-700 max-w-xs"
-              >
-                <div className="flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium mb-0.5">Profile verification required</p>
-                    <p>Verify your email and mobile in Account Settings to run pipelines.</p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={handleRun}
-              className="px-6 py-3 bg-[#0066FF] text-white rounded-xl font-semibold shadow-lg shadow-[#0066FF]/20 hover:shadow-xl hover:shadow-[#0066FF]/30 transition-shadow"
-            >
-              Run Pipeline
-            </motion.button>
-          </div>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleRun}
+            className="px-6 py-3 bg-[#0066FF] text-white rounded-xl font-semibold shadow-lg shadow-[#0066FF]/20 hover:shadow-xl hover:shadow-[#0066FF]/30 transition-shadow"
+          >
+            Run Pipeline
+          </motion.button>
         )}
       </div>
 
