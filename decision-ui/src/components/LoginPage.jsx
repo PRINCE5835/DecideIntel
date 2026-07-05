@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { LogIn, Loader2 } from "lucide-react";
 import { fetchWithRetry } from "../utils/retry";
 
-const API_BASE = "/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
