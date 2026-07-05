@@ -1,5 +1,5 @@
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
-const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_TIMEOUT_MS = 30000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
