@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Upload } from "lucide-react";
+import { X, Plus, Upload, FileJson, FileText, CheckCircle2 } from "lucide-react";
 import { usePersona } from "../data/PersonaContext";
 
 const container = {
@@ -27,14 +27,56 @@ export default function Beat1_Persona({ onSelect }) {
   const { personas, activePersona, selectPersona, addPersona } = usePersona();
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ name: "", role: "", bottleneck: "" });
+  const [fileData, setFileData] = useState(null);
+  const [fileName, setFileName] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const dropRef = useRef(null);
+
+  const parseFile = (file) => {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target.result;
+        if (file.name.endsWith(".json")) {
+          setFileData(JSON.parse(text));
+        } else {
+          const lines = text.split("\n").filter(Boolean);
+          const headers = lines[0].split(",").map((h) => h.trim());
+          const rows = lines.slice(1).map((l) => {
+            const vals = l.split(",").map((v) => v.trim());
+            return headers.reduce((obj, h, i) => ({ ...obj, [h]: vals[i] }), {});
+          });
+          setFileData({ headers, rows, raw: text.slice(0, 2000) });
+        }
+      } catch {
+        setFileData({ raw: e.target.result.slice(0, 2000) });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) parseFile(file);
+  }, []);
+
+  const handleFileInput = (e) => {
+    const file = e.target.files?.[0];
+    if (file) parseFile(file);
+  };
 
   const handleAdd = () => {
     if (!form.name.trim() || !form.role.trim()) return;
-    const p = addPersona(form);
+    const p = addPersona({ ...form, fileData });
     selectPersona(p.id);
     onSelect?.(p);
     setShowModal(false);
     setForm({ name: "", role: "", bottleneck: "" });
+    setFileData(null);
+    setFileName("");
   };
 
   return (
@@ -185,14 +227,38 @@ export default function Beat1_Persona({ onSelect }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Mock Data Source (JSON)</label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".json,.csv,.txt"
-                      className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-500 outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-[#0066FF]/5 file:text-[#0066FF] hover:file:bg-[#0066FF]/10 cursor-pointer"
-                    />
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Data Source (CSV / JSON)</label>
+                  <div
+                    ref={dropRef}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    className={`relative h-28 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer ${
+                      dragOver ? "border-[#0066FF] bg-[#0066FF]/3" : fileData ? "border-green-200 bg-green-50/50" : "border-slate-200 bg-slate-50 hover:border-[#0066FF]/40"
+                    }`}
+                    onClick={() => document.getElementById("file-input")?.click()}
+                  >
+                    {fileData ? (
+                      <div className="flex items-center gap-2 text-sm text-green-700">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span className="font-medium">{fileName}</span>
+                        <span className="text-green-500">loaded</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5">
+                        {dragOver ? (
+                          <Upload className="w-6 h-6 text-[#0066FF]" />
+                        ) : (
+                          <FileJson className="w-6 h-6 text-slate-300" />
+                        )}
+                        <p className="text-xs text-slate-400">
+                          {dragOver ? "Drop file here" : "Drag & drop or click to browse"}
+                        </p>
+                        <p className="text-xs text-slate-300">Supports .csv, .json</p>
+                      </div>
+                    )}
                   </div>
+                  <input id="file-input" type="file" accept=".json,.csv" onChange={handleFileInput} className="hidden" />
                 </div>
               </div>
 

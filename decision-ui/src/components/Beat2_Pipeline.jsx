@@ -1,11 +1,62 @@
-import { useState, useEffect, useMemo, memo } from "react";
+import { useState, useEffect, useMemo, memo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Circle, ArrowRight, Shield } from "lucide-react";
+import { CheckCircle2, Circle, ArrowRight, Shield, Terminal } from "lucide-react";
 import { pipelineStages, benchmarkData } from "../data/mockData";
 import { usePersona } from "../data/PersonaContext";
 import useProfile from "../data/useProfile";
 
 const stageDuration = 400;
+
+const stageLogs = {
+  ingest: [
+    { t: 0, msg: "Ingesting data sources..." },
+    { t: 80, msg: "  → Connected to 3 data streams" },
+    { t: 160, msg: "  → Reading CSV: 12,847 rows received" },
+    { t: 240, msg: "  → Reading JSON: 2 payloads parsed" },
+    { t: 320, msg: "  → Total: 15.2 MB ingested in 0.34s" },
+    { t: 400, msg: "✓ Ingest complete" },
+  ],
+  normalize: [
+    { t: 0, msg: "Normalizing data schema..." },
+    { t: 80, msg: "  → Standardizing column names" },
+    { t: 160, msg: "  → Casting 8 fields to numeric" },
+    { t: 240, msg: "  → Datetime alignment: 3 timezones merged" },
+    { t: 320, msg: "  → 23 schema violations repaired" },
+    { t: 400, msg: "✓ Normalize complete" },
+  ],
+  dedup: [
+    { t: 0, msg: "Deduplicating records..." },
+    { t: 80, msg: "  → Exact match scan on 12,847 rows" },
+    { t: 160, msg: "  → Fuzzy matching with 0.95 threshold" },
+    { t: 240, msg: "  → 156 duplicate rows removed" },
+    { t: 320, msg: "  → 12,691 unique records remaining" },
+    { t: 400, msg: "✓ Deduplicate complete" },
+  ],
+  filter: [
+    { t: 0, msg: "Applying filter rules..." },
+    { t: 80, msg: "  → Rule 1: Outlier removal (±3σ)" },
+    { t: 160, msg: "  → Rule 2: Null value imputation (mean)" },
+    { t: 240, msg: "  → Rule 3: Date range filter applied" },
+    { t: 320, msg: "  → 341 outliers flagged, 89 nulls imputed" },
+    { t: 400, msg: "✓ Filter complete" },
+  ],
+  analyze: [
+    { t: 0, msg: "Running ML analysis..." },
+    { t: 80, msg: "  → GPU kernel launched: 256 CUDA cores" },
+    { t: 160, msg: "  → Anomaly detection: 0.03s (GPU)" },
+    { t: 240, msg: "  → 2 anomalies detected at p<0.01" },
+    { t: 320, msg: "  → Feature importance: 7/12 features selected" },
+    { t: 400, msg: "✓ Analyze complete — results cached" },
+  ],
+  decide: [
+    { t: 0, msg: "Generating decision recommendations..." },
+    { t: 80, msg: "  → Gemini LLM inference (1.2s)" },
+    { t: 160, msg: "  → 3 priority actions ranked" },
+    { t: 240, msg: "  → Risk score computed: 0.23 (low)" },
+    { t: 320, msg: "  → Decision report compiled" },
+    { t: 400, msg: "✓ Decide complete — output ready" },
+  ],
+};
 
 const BenchmarkRow = ({ data, index }) => {
   const [animate, setAnimate] = useState(false);
@@ -91,6 +142,31 @@ export default function Beat2_Pipeline({ onComplete }) {
   const [currentStage, setCurrentStage] = useState(-1);
   const [started, setStarted] = useState(false);
   const [showBenchmarks, setShowBenchmarks] = useState(false);
+  const [terminalLines, setTerminalLines] = useState([]);
+  const terminalRef = useRef(null);
+
+  useEffect(() => {
+    if (currentStage < 0 || currentStage >= pipelineStages.length) return;
+    const stage = pipelineStages[currentStage];
+    const logs = stageLogs[stage.id] || [];
+    if (!logs.length) return;
+    let idx = 0;
+    const timer = setInterval(() => {
+      if (idx < logs.length) {
+        setTerminalLines((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${logs[idx].msg}`]);
+        idx++;
+      } else {
+        clearInterval(timer);
+      }
+    }, 80);
+    return () => clearInterval(timer);
+  }, [currentStage]);
+
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalLines]);
 
   useEffect(() => {
     if (!started || currentStage >= pipelineStages.length) return;
@@ -209,6 +285,35 @@ export default function Beat2_Pipeline({ onComplete }) {
           ))}
         </div>
       </div>
+
+      <AnimatePresence>
+        {started && terminalLines.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-[#1E293B] rounded-2xl border border-slate-700 shadow-sm p-4 mb-6 overflow-hidden"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Terminal className="w-4 h-4 text-[#34D399]" />
+              <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Pipeline Terminal</span>
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-[#34D399]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" />
+                Running
+              </span>
+            </div>
+            <div ref={terminalRef} className="h-44 overflow-y-auto space-y-0.5 font-mono text-xs scroll-smooth">
+              {terminalLines.map((line, i) => (
+                <div key={i} className={`${line.startsWith("✓") ? "text-[#34D399]" : "text-slate-300"} leading-6`}>
+                  {line}
+                </div>
+              ))}
+              {!showBenchmarks && (
+                <span className="inline-block w-2 h-4 bg-slate-300 animate-pulse" />
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showBenchmarks && (

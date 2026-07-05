@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { AlertTriangle, TrendingUp, Lightbulb, Zap } from "lucide-react";
+import { AlertTriangle, TrendingUp, Lightbulb, Zap, CheckCircle2, Sliders } from "lucide-react";
 import { usePersona, dataForPersona } from "../data/PersonaContext";
 
 const AnomalyChart = ({ data }) => {
@@ -48,46 +48,63 @@ const AnomalyChart = ({ data }) => {
   );
 };
 
-const AlertsPanel = ({ alerts }) => {
+const AlertsPanel = ({ alerts, onResolve, resolved }) => {
   const [activeAlert, setActiveAlert] = useState(null);
   return (
     <div className="space-y-3">
-      {alerts.map((alert, i) => (
-        <motion.div
-          key={alert.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 + i * 0.1 }}
-          onMouseEnter={() => setActiveAlert(alert.id)}
-          onMouseLeave={() => setActiveAlert(null)}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            activeAlert === alert.id ? "shadow-md border-slate-200" : "border-slate-100"
-          } ${
-            alert.severity === "CRITICAL"
-              ? "bg-red-50/50"
-              : alert.severity === "WARNING"
-              ? "bg-amber-50/50"
-              : "bg-slate-50"
-          }`}
-        >
-          <div className="flex items-start gap-2">
-            <div
-              className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                alert.severity === "CRITICAL"
-                  ? "bg-red-500"
-                  : alert.severity === "WARNING"
-                  ? "bg-amber-500"
-                  : "bg-blue-500"
-              }`}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-700">{alert.message}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{alert.action}</p>
+      {alerts.map((alert, i) => {
+        const isResolved = resolved.has(alert.id);
+        return (
+          <motion.div
+            key={alert.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.1 }}
+            onMouseEnter={() => setActiveAlert(alert.id)}
+            onMouseLeave={() => setActiveAlert(null)}
+            className={`p-3 rounded-xl border transition-all ${
+              isResolved
+                ? "bg-green-50/50 border-green-200 opacity-60"
+                : activeAlert === alert.id
+                ? "shadow-md border-slate-200"
+                : "border-slate-100"
+            } ${
+              !isResolved && alert.severity === "CRITICAL"
+                ? "bg-red-50/50"
+                : !isResolved && alert.severity === "WARNING"
+                ? "bg-amber-50/50"
+                : !isResolved && "bg-slate-50"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <div
+                className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                  isResolved ? "bg-green-400" : alert.severity === "CRITICAL" ? "bg-red-500" : alert.severity === "WARNING" ? "bg-amber-500" : "bg-blue-500"
+                }`}
+              />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${isResolved ? "text-slate-400 line-through" : "text-slate-700"}`}>
+                  {isResolved ? "Resolved: " : ""}{alert.message}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">{alert.action}</p>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {isResolved ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                ) : (
+                  <button
+                    onClick={() => onResolve(alert.id)}
+                    className="px-2 py-1 rounded-lg bg-[#0066FF]/5 text-[#0066FF] text-xs font-medium border border-[#0066FF]/10 hover:bg-[#0066FF]/10 transition-colors"
+                  >
+                    Resolve
+                  </button>
+                )}
+                <span className="text-xs text-slate-400">{alert.time}</span>
+              </div>
             </div>
-            <span className="text-xs text-slate-400 flex-shrink-0">{alert.time}</span>
-          </div>
-        </motion.div>
-      ))}
+          </motion.div>
+        );
+      })}
     </div>
   );
 };
@@ -120,10 +137,42 @@ const ForecastList = ({ data }) => {
   );
 };
 
+function applySimulation(data, params) {
+  const factor = 1 + (params.sensitivity - 50) / 100 * 0.6 + (params.volatility - 50) / 100 * 0.3;
+  const threshold = params.threshold;
+  return {
+    ...data,
+    anomalyTimeline: data.anomalyTimeline.map((d) => ({
+      ...d,
+      value: Math.round(d.value * factor),
+      anomaly: d.value * factor > threshold,
+    })),
+    forecastData: data.forecastData.map((f) => ({
+      ...f,
+      forecast: Math.round(f.forecast * factor),
+      lower: Math.round(f.lower * factor * 0.9),
+      upper: Math.round(f.upper * factor * 1.1),
+    })),
+  };
+}
+
 export default function Beat3_DecisionHub() {
   const { activePersona } = usePersona();
-  const personaData = useMemo(() => dataForPersona(activePersona), [activePersona]);
+  const baseData = useMemo(() => dataForPersona(activePersona), [activePersona]);
+  const [params, setParams] = useState({ sensitivity: 50, volatility: 50, threshold: 150 });
+  const [showToast, setShowToast] = useState(null);
+  const [resolved, setResolved] = useState(new Set());
+
+  const personaData = useMemo(() => applySimulation(baseData, params), [baseData, params]);
   const anomalyCount = personaData.anomalyTimeline.filter((d) => d.anomaly).length;
+
+  const handleSlider = (key, value) => setParams((p) => ({ ...p, [key]: value }));
+
+  const handleResolve = useCallback((id) => {
+    setResolved((prev) => new Set([...prev, id]));
+    setShowToast(id);
+    setTimeout(() => setShowToast(null), 2500);
+  }, []);
 
   return (
     <motion.div
@@ -179,7 +228,44 @@ export default function Beat3_DecisionHub() {
             </div>
             <span className="text-xs text-slate-400">{personaData.alerts.length} new</span>
           </div>
-          <AlertsPanel alerts={personaData.alerts} />
+          <AlertsPanel alerts={personaData.alerts} onResolve={handleResolve} resolved={resolved} />
+        </motion.div>
+      </div>
+
+      <div className="mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25 }}
+          className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <Sliders className="w-5 h-5 text-slate-500" />
+            <h2 className="text-lg font-semibold text-slate-800">Simulation Parameter Control</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { key: "sensitivity", label: "Sensitivity", min: 10, max: 100, desc: "Anomaly detection sensitivity" },
+              { key: "volatility", label: "Volatility", min: 10, max: 100, desc: "Market volatility factor" },
+              { key: "threshold", label: "Threshold", min: 80, max: 300, desc: "Anomaly alert threshold" },
+            ].map(({ key, label, min, max, desc }) => (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-sm font-medium text-slate-700">{label}</label>
+                  <span className="text-xs font-semibold text-[#0066FF] bg-[#0066FF]/5 px-2 py-0.5 rounded-lg">{params[key]}</span>
+                </div>
+                <input
+                  type="range"
+                  min={min}
+                  max={max}
+                  value={params[key]}
+                  onChange={(e) => handleSlider(key, Number(e.target.value))}
+                  className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-slate-200 accent-[#0066FF] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0066FF] [&::-webkit-slider-thumb]:shadow-[0_2px_6px_rgba(0,102,255,0.3)] [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-125"
+                />
+                <p className="text-xs text-slate-400 mt-1">{desc}</p>
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
 
@@ -255,6 +341,21 @@ export default function Beat3_DecisionHub() {
           </div>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 40, x: "-50%" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed bottom-8 left-1/2 z-50 flex items-center gap-2.5 px-5 py-3 rounded-xl bg-green-50 border border-green-200 shadow-lg shadow-green-200/40"
+          >
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <span className="text-sm font-medium text-green-700">Alert resolved and automated successfully</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
