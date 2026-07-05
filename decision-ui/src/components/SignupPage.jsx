@@ -14,10 +14,18 @@ export default function SignupPage({ onLogin, onSwitchToLogin }) {
   const [backendStatus, setBackendStatus] = useState("checking");
 
   useEffect(() => {
-    fetch(`${API_BASE}/auth/health`, { signal: AbortSignal.timeout(5000) })
-      .then((r) => r.json())
-      .then((d) => setBackendStatus(d.status === "ok" ? "online" : "error"))
-      .catch(() => setBackendStatus("offline"));
+    let cancelled = false;
+    let retries = 0;
+    const check = () => {
+      if (cancelled || retries >= 6) return;
+      retries++;
+      fetch(`${API_BASE}/auth/health`, { signal: AbortSignal.timeout(30000) })
+        .then((r) => r.json())
+        .then((d) => { if (!cancelled) setBackendStatus(d.status === "ok" ? "online" : "error"); })
+        .catch(() => { if (!cancelled) { setBackendStatus("offline"); setTimeout(check, 8000); } });
+    };
+    check();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSubmit = async (e) => {
