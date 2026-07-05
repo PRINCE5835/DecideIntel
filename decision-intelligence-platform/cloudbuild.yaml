@@ -1,0 +1,32 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-t"
+      - "gcr.io/${_PROJECT_ID}/decision-intel-platform:${_VERSION}"
+      - "."
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "push"
+      - "gcr.io/${_PROJECT_ID}/decision-intel-platform:${_VERSION}"
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "decision-intel-platform"
+      - "--image=gcr.io/${_PROJECT_ID}/decision-intel-platform:${_VERSION}"
+      - "--platform=managed"
+      - "--region=${_REGION}"
+      - "--no-allow-unauthenticated"
+      - "--memory=2Gi"
+      - "--cpu=2"
+      - "--set-env-vars=GEMINI_API_KEY=${_GEMINI_API_KEY},CUDF_ENABLED=0,JWT_SECRET=${_JWT_SECRET},CORS_ORIGINS=${_CORS_ORIGINS}"
+
+substitutions:
+  _PROJECT_ID: your-gcp-project-id
+  _REGION: us-central1
+  _VERSION: latest
+  _GEMINI_API_KEY: ""
+  _JWT_SECRET: ""
+  _CORS_ORIGINS: "https://your-frontend.vercel.app"

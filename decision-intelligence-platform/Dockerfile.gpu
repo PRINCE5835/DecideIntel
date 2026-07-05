@@ -1,0 +1,18 @@
+FROM python:3.11-slim AS backend
+
+WORKDIR /app
+COPY backend/ ./backend/
+COPY requirements.txt setup.py ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ── Stage 2: NVIDIA RAPIDS GPU image ─────────────────────────────
+FROM rapidsai/base:24.10-cuda12.0-py3.11 AS gpu-backend
+COPY --from=backend /app /app
+WORKDIR /app
+RUN pip install --no-cache-dir flask flask-cors google-generativeai python-dotenv pyyaml fire gunicorn
+
+ENV CUDF_ENABLED=1
+ENV PORT=8080
+EXPOSE 8080
+
+CMD gunicorn --bind 0.0.0.0:${PORT} --workers 2 --timeout 120 "backend.server:app"
