@@ -1,24 +1,43 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Loader2, Sparkles } from "lucide-react";
+import { Search, Bell, Loader2, Sparkles, LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { usePersona } from "../data/PersonaContext";
 import { fetchWithRetry } from "../utils/retry";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 function sanitise(input) {
-  return input
-    .replace(/<[^>]*>/g, "")
-    .replace(/[<>"'`]/g, "")
-    .slice(0, 500);
+  return input.replace(/<[^>]*>/g, "").replace(/[<>"'`]/g, "").slice(0, 500);
 }
 
-export default function Header({ activeBeat, setActiveBeat, beats, selectedPersona }) {
+export default function Header({ activeBeat, setActiveBeat, beats, onLogout }) {
+  const { personas, activePersona, selectPersona } = usePersona();
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef(null);
   const blurTimerRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  const filteredAlerts = useMemo(() => {
+    if (!query.trim()) return null;
+    const q = query.toLowerCase();
+    const alerts = [];
+    personas.forEach((p) => {
+      const data = window.__personaData?.[p.id];
+      data?.alerts?.forEach((a) => {
+        if (a.message.toLowerCase().includes(q) || a.action.toLowerCase().includes(q)) {
+          alerts.push({ ...a, persona: p.name });
+        }
+      });
+    });
+    const personaMatch = personas.filter((p) =>
+      p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q) || p.bottleneck.toLowerCase().includes(q)
+    );
+    return { alerts, personas: personaMatch, raw: q };
+  }, [query, personas]);
 
   const handleSubmit = useCallback(async () => {
     const raw = query.trim();
@@ -26,6 +45,23 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
     const question = sanitise(raw);
     setLoading(true);
     setAnswer(null);
+
+    const localMatch = filteredAlerts;
+    if (localMatch && (localMatch.alerts.length > 0 || localMatch.personas.length > 0)) {
+      setTimeout(() => {
+        const parts = [];
+        if (localMatch.personas.length > 0) {
+          parts.push(`**Matching Personas:** ${localMatch.personas.map((p) => p.name).join(", ")}`);
+        }
+        if (localMatch.alerts.length > 0) {
+          parts.push(`**Matching Alerts:**\n${localMatch.alerts.map((a) => `- ${a.message} (${a.persona})`).join("\n")}`);
+        }
+        setAnswer({ answer: parts.join("\n\n"), source: "local" });
+        setLoading(false);
+      }, 600);
+      return;
+    }
+
     try {
       const resp = await fetchWithRetry(`${API_BASE}/query`, {
         method: "POST",
@@ -43,7 +79,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
     } finally {
       setLoading(false);
     }
-  }, [query, loading]);
+  }, [query, loading, filteredAlerts]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleSubmit();
@@ -54,10 +90,18 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
     blurTimerRef.current = setTimeout(() => { if (!loading) setFocused(false); }, 200);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-6">
-        <div className="flex items-center gap-2 mr-4">
+        <div className="flex items-center gap-2 mr-4 flex-shrink-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0066FF] to-[#4F8CFF] flex items-center justify-center text-white text-sm font-bold">
             D
           </div>
@@ -80,7 +124,7 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
               onFocus={() => setFocused(true)}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything about your data... (e.g. 'what anomalies were found?')"
+              placeholder="Ask anything about your data... (e.g. 'show alerts')"
               className="w-full h-10 pl-10 pr-12 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/10 transition-all"
             />
             {query.trim() && !loading && (
@@ -97,14 +141,41 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
           </motion.div>
 
           <AnimatePresence>
-            {(answer || loading) && focused && (
+            {(answer || loading || (filteredAlerts && focused)) && (
               <motion.div
                 initial={{ opacity: 0, y: -8, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="absolute top-full left-0 right-0 mt-2 p-4 bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/50"
+                className="absolute top-full left-0 right-0 mt-2 p-4 bg-white rounded-xl border border-slate-200 shadow-xl shadow-slate-200/50 max-h-80 overflow-y-auto"
               >
+                {filteredAlerts && !loading && !answer && (
+                  <div className="text-sm text-slate-500 space-y-2">
+                    {filteredAlerts.personas.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Personas</p>
+                        {filteredAlerts.personas.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => { selectPersona(p.id); setFocused(false); }}
+                            className="block w-full text-left p-2 rounded-lg hover:bg-slate-50 text-slate-700"
+                          >
+                            {p.name} — <span className="text-slate-400">{p.role}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {filteredAlerts.alerts.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Alerts</p>
+                        {filteredAlerts.alerts.map((a, i) => (
+                          <p key={i} className="p-2 rounded-lg text-slate-600 text-xs">{a.message} <span className="text-slate-400">({a.persona})</span></p>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-400">Press Enter or click Ask for full AI response</p>
+                  </div>
+                )}
                 {loading && (
                   <div className="flex items-center gap-2 text-sm text-slate-500">
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -116,10 +187,10 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="w-4 h-4 text-amber-500" />
                       <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                        {answer.source === "gemini" ? "Gemini AI" : "Decision Engine"}
+                        {answer.source === "gemini" ? "Gemini AI" : answer.source === "local" ? "Local Intelligence" : "Decision Engine"}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-700 leading-relaxed">{answer.answer}</p>
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{answer.answer}</p>
                   </div>
                 )}
               </motion.div>
@@ -144,23 +215,72 @@ export default function Header({ activeBeat, setActiveBeat, beats, selectedPerso
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative" ref={dropdownRef}>
           <button className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors">
             <Bell className="w-5 h-5 text-slate-500" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
           </button>
-          <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center gap-2 pl-3 border-l border-slate-200 hover:bg-slate-50 rounded-xl py-1.5 pr-2 transition-colors"
+          >
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-              style={{ background: selectedPersona?.color || "#0066FF" }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+              style={{ background: activePersona?.color || "#0066FF" }}
             >
-              {selectedPersona?.initials || "U"}
+              {activePersona?.initials || "U"}
             </div>
-            <div className="hidden sm:block">
-              <p className="text-sm font-medium text-slate-700 leading-tight">{selectedPersona?.name}</p>
-              <p className="text-xs text-slate-400 leading-tight">{selectedPersona?.role}</p>
+            <div className="hidden sm:block text-left">
+              <p className="text-sm font-medium text-slate-700 leading-tight">{activePersona?.name}</p>
+              <p className="text-xs text-slate-400 leading-tight">{activePersona?.role}</p>
             </div>
-          </div>
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+          </button>
+
+          <AnimatePresence>
+            {showDropdown && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl border border-slate-100 shadow-xl shadow-slate-200/50 p-2"
+              >
+                <div className="px-3 py-2 mb-1">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Switch Persona</p>
+                </div>
+                {personas.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { selectPersona(p.id); setShowDropdown(false); }}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-sm transition-colors ${
+                      activePersona.id === p.id ? "bg-[#0066FF]/5 text-[#0066FF]" : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                      style={{ background: p.color }}
+                    >
+                      {p.initials}
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium">{p.name}</p>
+                      <p className="text-xs text-slate-400">{p.role}</p>
+                    </div>
+                  </button>
+                ))}
+                <div className="border-t border-slate-100 mt-2 pt-2">
+                  <button
+                    onClick={() => { setShowDropdown(false); onLogout?.(); }}
+                    className="w-full flex items-center gap-2 p-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign out
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </header>

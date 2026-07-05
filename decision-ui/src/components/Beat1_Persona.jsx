@@ -1,4 +1,7 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Plus, Upload } from "lucide-react";
+import { usePersona } from "../data/PersonaContext";
 
 const container = {
   hidden: {},
@@ -20,7 +23,20 @@ const itemRight = {
   show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
-export default function Beat1_Persona({ personas, selected, onSelect }) {
+export default function Beat1_Persona({ onSelect }) {
+  const { personas, activePersona, selectPersona, addPersona } = usePersona();
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ name: "", role: "", bottleneck: "" });
+
+  const handleAdd = () => {
+    if (!form.name.trim() || !form.role.trim()) return;
+    const p = addPersona(form);
+    selectPersona(p.id);
+    onSelect?.(p);
+    setShowModal(false);
+    setForm({ name: "", role: "", bottleneck: "" });
+  };
+
   return (
     <motion.div
       key="persona"
@@ -30,7 +46,6 @@ export default function Beat1_Persona({ personas, selected, onSelect }) {
       exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
       className="pt-8"
     >
-      {/* Hero */}
       <motion.div variants={item} className="text-center mb-12">
         <motion.div
           initial={{ scale: 0 }}
@@ -49,22 +64,21 @@ export default function Beat1_Persona({ personas, selected, onSelect }) {
         </p>
       </motion.div>
 
-      {/* Persona Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
         {personas.map((p, i) => (
           <motion.button
             key={p.id}
-            variants={i === 0 ? itemLeft : i === 2 ? itemRight : item}
+            variants={i === 0 ? itemLeft : i >= personas.length - 1 ? itemRight : item}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onSelect(p)}
+            onClick={() => { selectPersona(p.id); onSelect?.(p); }}
             className={`relative text-left p-6 rounded-2xl border-2 transition-all ${
-              selected.id === p.id
+              activePersona.id === p.id
                 ? "border-[#0066FF] bg-white shadow-xl shadow-[#0066FF]/5"
                 : "border-slate-100 bg-white hover:border-slate-200 shadow-sm hover:shadow-md"
             }`}
           >
-            {selected.id === p.id && (
+            {activePersona.id === p.id && (
               <motion.div
                 layoutId="activeBorder"
                 className="absolute inset-0 rounded-2xl ring-2 ring-[#0066FF]/20"
@@ -99,7 +113,109 @@ export default function Beat1_Persona({ personas, selected, onSelect }) {
             </div>
           </motion.button>
         ))}
+
+        <motion.button
+          variants={item}
+          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowModal(true)}
+          className="relative text-left p-6 rounded-2xl border-2 border-dashed border-slate-200 bg-white/50 hover:border-[#0066FF]/40 hover:bg-[#0066FF]/3 transition-all flex flex-col items-center justify-center min-h-[280px]"
+        >
+          <div className="w-14 h-14 rounded-xl bg-[#0066FF]/5 border border-[#0066FF]/10 flex items-center justify-center mb-4">
+            <Plus className="w-6 h-6 text-[#0066FF]" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-700 mb-1">Add Custom Identity</h3>
+          <p className="text-sm text-slate-400 text-center">Upload or create a new persona with custom data source</p>
+        </motion.button>
       </div>
+
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm"
+            onClick={() => setShowModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-xl p-7"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-slate-800">Add Custom Identity</h2>
+                <button onClick={() => setShowModal(false)} className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Full Name</label>
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-sm outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12"
+                    placeholder="e.g. Sarah Johnson"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Role</label>
+                  <input
+                    type="text"
+                    value={form.role}
+                    onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                    className="w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-sm outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12"
+                    placeholder="e.g. Supply Chain Manager"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Decision Bottleneck</label>
+                  <input
+                    type="text"
+                    value={form.bottleneck}
+                    onChange={(e) => setForm((f) => ({ ...f, bottleneck: e.target.value }))}
+                    className="w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-sm outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12"
+                    placeholder="e.g. Inventory replenishment delay > 4h"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Mock Data Source (JSON)</label>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept=".json,.csv,.txt"
+                      className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-500 outline-none transition-all focus:border-[#0066FF] focus:ring-2 focus:ring-[#0066FF]/12 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-[#0066FF]/5 file:text-[#0066FF] hover:file:bg-[#0066FF]/10 cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 h-11 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAdd}
+                  disabled={!form.name.trim() || !form.role.trim()}
+                  className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#0066FF] to-[#4F8CFF] text-white text-sm font-semibold shadow-[0_4px_14px_rgba(0,102,255,0.25)] hover:shadow-[0_6px_20px_rgba(0,102,255,0.3)] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Create Persona
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

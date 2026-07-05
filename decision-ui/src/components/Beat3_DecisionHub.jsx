@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { AlertTriangle, TrendingUp, Lightbulb, Zap, ChevronRight } from "lucide-react";
-import { alerts, forecastData, anomalyTimeline, llmRecommendation } from "../data/mockData";
+import { AlertTriangle, TrendingUp, Lightbulb, Zap } from "lucide-react";
+import { usePersona, dataForPersona } from "../data/PersonaContext";
 
 const AnomalyChart = ({ data }) => {
-  const { memoData } = useMemo(() => ({ memoData: data }), [data]);
+  const memoData = useMemo(() => data, [data]);
   return (
     <div className="h-56">
       <ResponsiveContainer width="100%" height="100%">
@@ -120,7 +120,11 @@ const ForecastList = ({ data }) => {
   );
 };
 
-export default function Beat3_DecisionHub({ persona }) {
+export default function Beat3_DecisionHub() {
+  const { activePersona } = usePersona();
+  const personaData = useMemo(() => dataForPersona(activePersona), [activePersona]);
+  const anomalyCount = personaData.anomalyTimeline.filter((d) => d.anomaly).length;
+
   return (
     <motion.div
       key="decisions"
@@ -139,7 +143,7 @@ export default function Beat3_DecisionHub({ persona }) {
         </div>
         <h1 className="text-3xl font-bold text-slate-800 tracking-tight mb-1">Decision Intelligence Hub</h1>
         <p className="text-slate-500">
-          Actionable insights for <span className="font-medium text-slate-700">{persona.name}</span>
+          Actionable insights for <span className="font-medium text-slate-700">{activePersona.name}</span>
         </p>
       </div>
 
@@ -156,10 +160,10 @@ export default function Beat3_DecisionHub({ persona }) {
               <h2 className="text-lg font-semibold text-slate-800">Anomaly Detection Trend</h2>
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
-              2 anomalies detected
+              {anomalyCount} anomalies detected
             </span>
           </div>
-          <AnomalyChart data={anomalyTimeline} />
+          <AnomalyChart data={personaData.anomalyTimeline} />
         </motion.div>
 
         <motion.div
@@ -173,9 +177,9 @@ export default function Beat3_DecisionHub({ persona }) {
               <AlertTriangle className="w-5 h-5 text-slate-500" />
               <h2 className="text-lg font-semibold text-slate-800">Active Alerts</h2>
             </div>
-            <span className="text-xs text-slate-400">{alerts.length} new</span>
+            <span className="text-xs text-slate-400">{personaData.alerts.length} new</span>
           </div>
-          <AlertsPanel alerts={alerts} />
+          <AlertsPanel alerts={personaData.alerts} />
         </motion.div>
       </div>
 
@@ -192,7 +196,7 @@ export default function Beat3_DecisionHub({ persona }) {
               <h2 className="text-lg font-semibold text-slate-800">Demand Forecast</h2>
             </div>
           </div>
-          <ForecastList data={forecastData} />
+          <ForecastList data={personaData.forecastData} />
         </motion.div>
 
         <motion.div
@@ -219,7 +223,7 @@ export default function Beat3_DecisionHub({ persona }) {
               className="p-4 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#4F8CFF] text-white"
             >
               <Zap className="w-5 h-5 mb-2" />
-              <p className="text-2xl font-bold">95%</p>
+              <p className="text-2xl font-bold">{personaData.stats.latencyReduction}%</p>
               <p className="text-xs text-white/80">Decision latency reduction</p>
             </motion.div>
             <motion.div
@@ -229,7 +233,7 @@ export default function Beat3_DecisionHub({ persona }) {
               className="p-4 rounded-xl bg-gradient-to-br from-green-500 to-emerald-400 text-white"
             >
               <TrendingUp className="w-5 h-5 mb-2" />
-              <p className="text-2xl font-bold">22%</p>
+              <p className="text-2xl font-bold">{personaData.stats.forecastGain}%</p>
               <p className="text-xs text-white/80">Forecast accuracy gain</p>
             </motion.div>
             <motion.div
@@ -239,14 +243,14 @@ export default function Beat3_DecisionHub({ persona }) {
               className="p-4 rounded-xl bg-gradient-to-br from-amber-500 to-orange-400 text-white"
             >
               <AlertTriangle className="w-5 h-5 mb-2" />
-              <p className="text-2xl font-bold">3</p>
+              <p className="text-2xl font-bold">{personaData.stats.resolvedAlerts}</p>
               <p className="text-xs text-white/80">Critical alerts resolved</p>
             </motion.div>
           </div>
 
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
             <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">
-              {llmRecommendation}
+              {personaData.llmRecommendation}
             </p>
           </div>
         </motion.div>

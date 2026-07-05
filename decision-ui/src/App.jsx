@@ -1,10 +1,10 @@
 import { useState, lazy, Suspense } from "react";
 import { AnimatePresence } from "framer-motion";
+import { PersonaProvider } from "./data/PersonaContext";
 import Header from "./components/Header";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoginPage from "./components/LoginPage";
 import SignupPage from "./components/SignupPage";
-import { personas } from "./data/mockData";
 
 const Beat1_Persona = lazy(() => import("./components/Beat1_Persona"));
 const Beat2_Pipeline = lazy(() => import("./components/Beat2_Pipeline"));
@@ -27,12 +27,62 @@ function BeatFallback() {
   );
 }
 
+function AuthenticatedApp({ onLogout }) {
+  const [activeBeat, setActiveBeat] = useState("persona");
+  const [pipelineDone, setPipelineDone] = useState(false);
+
+  const handlePersonaSelect = () => {
+    setActiveBeat("pipeline");
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen bg-[#F8FAFC] font-['Inter']">
+        <PersonaProvider>
+          <Header
+            activeBeat={activeBeat}
+            setActiveBeat={setActiveBeat}
+            beats={beats}
+            onLogout={onLogout}
+          />
+          <main className="max-w-7xl mx-auto px-6 pt-20 pb-12">
+            <AnimatePresence mode="wait">
+              <Suspense fallback={<BeatFallback />}>
+                {activeBeat === "persona" && (
+                  <Beat1_Persona
+                    key="persona"
+                    onSelect={handlePersonaSelect}
+                  />
+                )}
+                {activeBeat === "pipeline" && (
+                  <Beat2_Pipeline
+                    key="pipeline"
+                    onComplete={() => { setPipelineDone(true); setActiveBeat("decisions"); }}
+                  />
+                )}
+                {activeBeat === "decisions" && (
+                  <Beat3_DecisionHub
+                    key="decisions"
+                  />
+                )}
+              </Suspense>
+            </AnimatePresence>
+          </main>
+        </PersonaProvider>
+      </div>
+    </ErrorBoundary>
+  );
+}
+
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
   const [showSignup, setShowSignup] = useState(false);
-  const [activeBeat, setActiveBeat] = useState("persona");
-  const [selectedPersona, setSelectedPersona] = useState(personas[0]);
-  const [pipelineDone, setPipelineDone] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    setToken(null);
+  };
 
   if (!token) {
     if (showSignup) {
@@ -41,48 +91,5 @@ export default function App() {
     return <LoginPage onLogin={setToken} onSwitchToSignup={() => setShowSignup(true)} />;
   }
 
-  const handlePersonaSelect = (p) => {
-    setSelectedPersona(p);
-    setActiveBeat("pipeline");
-  };
-
-  return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-[#F8FAFC] font-['Inter']">
-        <Header
-          activeBeat={activeBeat}
-          setActiveBeat={setActiveBeat}
-          beats={beats}
-          selectedPersona={selectedPersona}
-        />
-        <main className="max-w-7xl mx-auto px-6 pt-20 pb-12">
-          <AnimatePresence mode="wait">
-            <Suspense fallback={<BeatFallback />}>
-              {activeBeat === "persona" && (
-                <Beat1_Persona
-                  key="persona"
-                  personas={personas}
-                  selected={selectedPersona}
-                  onSelect={handlePersonaSelect}
-                />
-              )}
-              {activeBeat === "pipeline" && (
-                <Beat2_Pipeline
-                  key="pipeline"
-                  persona={selectedPersona}
-                  onComplete={() => { setPipelineDone(true); setActiveBeat("decisions"); }}
-                />
-              )}
-              {activeBeat === "decisions" && (
-                <Beat3_DecisionHub
-                  key="decisions"
-                  persona={selectedPersona}
-                />
-              )}
-            </Suspense>
-          </AnimatePresence>
-        </main>
-      </div>
-    </ErrorBoundary>
-  );
+  return <AuthenticatedApp onLogout={handleLogout} />;
 }

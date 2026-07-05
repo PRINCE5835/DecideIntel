@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, Circle, ArrowRight } from "lucide-react";
 import { pipelineStages, benchmarkData } from "../data/mockData";
+import { usePersona } from "../data/PersonaContext";
 
 const stageDuration = 400;
 
@@ -81,7 +82,8 @@ const BenchmarkRow = ({ data, index }) => {
 
 const BenchmarkRowMemo = memo(BenchmarkRow);
 
-export default function Beat2_Pipeline({ persona, onComplete }) {
+export default function Beat2_Pipeline({ onComplete }) {
+  const { activePersona } = usePersona();
   const [stageStatuses, setStageStatuses] = useState(pipelineStages.map(() => "pending"));
   const [currentStage, setCurrentStage] = useState(-1);
   const [started, setStarted] = useState(false);
@@ -129,8 +131,8 @@ export default function Beat2_Pipeline({ persona, onComplete }) {
         <div>
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Pipeline Build</h1>
           <p className="text-slate-500 mt-1">
-            Running as <span className="font-medium text-slate-700">{persona.name}</span> —{" "}
-            <span className="text-amber-600">{persona.bottleneck}</span>
+            Running as <span className="font-medium text-slate-700">{activePersona.name}</span> —{" "}
+            <span className="text-amber-600">{activePersona.bottleneck}</span>
           </p>
         </div>
         {!started && (
