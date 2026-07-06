@@ -149,6 +149,61 @@ Each persona gets its own data schema, analysis thresholds, alert topics, and LL
 
 ---
 
+---
+
+## 🔐 Authentication & Session Management
+
+### Login Flow
+
+The platform uses a **dual-mode authentication system**:
+
+#### Admin Login (Env Vars — Always Available)
+| Field | Value |
+|-------|-------|
+| Username | `admin` (configurable via `AUTH_USERNAME` env var) |
+| Password | `admin123` (or `admin` — fallback if `AUTH_PASSWORD` unset) |
+
+The login page accepts **Email or Username** — the backend resolves either automatically:
+- `admin` → matches `AUTH_USERNAME` directly
+- `admin@test.com` → extracts `admin` prefix and matches against `AUTH_USERNAME`
+- `prince@email.com` → looks up registered user by email in `users.json` or PostgreSQL
+
+#### Registered User Login (Signup — Persistent via PostgreSQL)
+Signup stores credentials in **PostgreSQL** when `DATABASE_URL` is configured, or in `users.json` as fallback. Users can login anytime with their chosen username/email + password.
+
+### Login Page Features
+- **Unified Email/Username field** — one input for both identifiers
+- **Password visibility toggle** (eye icon)
+- **Backend health indicator** — live connection status with retry (up to 6 attempts)
+- **Error fallback chain** — intelligently maps network errors, 401s, and timeouts to user-friendly Hindi/English messages
+- **Rate-limit awareness** — shows clear message on 429 responses
+- **Glassmorphism UI** — gradient blobs, blue focus rings, gradient CTA button with hover lift
+
+### Signup Page Features
+- **Full Name, Username, Email, Password** — registration form
+- **Username availability check** — debounced (400ms) real-time validation against reserved list (`admin`, `root`, `test`, etc.) with visual status (amber/green)
+- **"Suggest Username" button** — auto-generates from Full Name (lowercase, no spaces) + random 3-digit suffix
+- **OTP email verification** — 4-digit code gateway with demo toast showing the code
+- **Auto-redirect on success** — smooth 800ms delay then redirects to persona dashboard
+
+### Session Persistence
+- On successful login/signup, `isAuthenticated=true` and `currentUser` JSON are saved to **localStorage**
+- On subsequent visits, the app auto-bypasses the login gate and routes directly to the "Choose Your Persona" dashboard
+- **Sign out** clears all session keys (`token`, `username`, `isAuthenticated`, `currentUser`) and resets to login view
+- JWT token expiry is configurable via `JWT_ACCESS_MINUTES` env var (default: 60 minutes)
+
+### Security Measures
+| Measure | Implementation |
+|---------|---------------|
+| **Password hashing** | bcrypt with auto-generated salt |
+| **Token format** | JWT HS256 with `iat`/`exp` claims |
+| **Rate limiting** | Login: 5 req/min, API: 100 req/min |
+| **Input sanitization** | bleach + markupsafe — XSS & SQLi protection |
+| **Token revocation** | In-memory blacklist on logout |
+| **Default credentials** | App auto-generates fallback password `admin123` if neither `AUTH_PASSWORD` nor `AUTH_PASSWORD_HASH` is set — **change in production** |
+
+---
+
 ## 🛠️ Local Installation
 
 ### Prerequisites
@@ -195,7 +250,7 @@ python -m backend.server
 # Frontend dev server proxies /api to the backend
 open http://localhost:5173
 ```
-Login with your configured `AUTH_PASSWORD`.
+Login with username `admin` and password `admin123` (or whatever you set in `AUTH_PASSWORD`).
 
 ### 6. (Optional) Enable GPU Acceleration
 ```bash
@@ -223,7 +278,8 @@ pytest tests/ -v
 # ── REQUIRED (app crashes at startup if missing) ──────────────
 JWT_SECRET=           # Generate: python -c "import secrets; print(secrets.token_hex(32))"
 CORS_ORIGINS=         # Comma-separated: http://localhost:5173,https://your-app.vercel.app
-AUTH_PASSWORD=        # Strong admin password (or use AUTH_PASSWORD_HASH)
+AUTH_PASSWORD=        # Admin password (fallback: "admin123" if unset — change in production)
+AUTH_PASSWORD_HASH=   # Optional: pre-hashed bcrypt password (overrides AUTH_PASSWORD)
 
 # ── Optional: LLM / AI ─────────────────────────────────────────
 GEMINI_API_KEY=       # Get from https://aistudio.google.com/apikey
@@ -270,7 +326,8 @@ DATABASE_URL=
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/auth/health` | GET | — | Health check |
-| `/api/auth/login` | POST | — | Authenticate → JWT token |
+| `/api/auth/login` | POST | — | Authenticate → JWT token (accepts `emailOrUsername` or `username` or `email` + `password`) |
+| `/api/auth/signup` | POST | — | Register new user (`username`, `password`, `email`) → JWT token |
 | `/api/auth/logout` | POST | JWT | Revoke session |
 | `/api/run-pipeline` | POST | JWT | Execute pipeline (body: `{"persona_id": "..."}`) |
 | `/api/results` | GET | JWT | Latest decision output |
@@ -295,6 +352,8 @@ Zero configuration — `vercel.json` provides SPA rewrites and security headers.
 # Render auto-detects render.yaml
 ```
 Set `JWT_SECRET`, `CORS_ORIGINS`, and `AUTH_PASSWORD` in the Render dashboard.
+
+> 💡 **Pro tip:** Add a **Neon PostgreSQL** database (free tier) from Render dashboard and set `DATABASE_URL` env var — registered users will persist across server restarts. Without it, users are stored in `users.json` (ephemeral filesystem).
 
 ### Google Cloud Run
 ```bash
@@ -378,7 +437,7 @@ decision-intelligence-platform/
 | **Rate Limiting** | Auth: 5 req/min, General: 100 req/min |
 | **Input Sanitization** | bleach + markupsafe for XSS/SQLi prevention |
 | **Security Headers** | HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy |
-| **Fail-Fast Config** | App crashes at startup if `JWT_SECRET`, `CORS_ORIGINS`, or `AUTH_PASSWORD` are missing |
+| **Fail-Fast Config** | App crashes at startup if `JWT_SECRET` or `CORS_ORIGINS` are missing; `AUTH_PASSWORD` defaults to `admin123` fallback |
 | **Graceful Shutdown** | SIGTERM handler for clean Gunicorn worker termination |
 | **Timeout Protection** | AbortController (15s) on frontend, ThreadPoolExecutor (30s) on Gemini |
 | **Retry Logic** | Exponential backoff with jitter on 429/502/503/504 |
